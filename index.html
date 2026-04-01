@@ -650,6 +650,22 @@
   .month-pill.over { border-color: rgba(239,68,68,.5); }
   .month-pill.over.active { background: var(--danger); border-color: var(--danger); }
   
+
+  .price-change-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .price-change-row:last-child { border-bottom: none; }
+  .price-up { color: var(--danger); }
+  .price-down { color: var(--success); }
+  .price-same { color: var(--text2); }
+  .price-arrow { margin: 0 8px; color: var(--text2); }
+
   /* RESPONSIVE */
   @media(max-width:768px){
     .chart-grid, .chart-grid-3 { grid-template-columns: 1fr; }
@@ -715,6 +731,7 @@
   <div class="tab" onclick="switchTab('ledger')">Transaction Ledger</div>
   <div class="tab" onclick="switchTab('submit')">New Submission</div>
   <div class="tab" onclick="switchTab('billing')">Monthly Bills</div>
+  <div class="tab" onclick="switchTab('pricing')">Pricing</div>
 </div>
 
 <main>
@@ -967,6 +984,98 @@
   </div>
   <div id="billPreview"></div>
 </div>
+
+<!-- PRICING -->
+<div id="page-pricing" class="page">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+    <!-- UPDATE FORM -->
+    <div class="form-card">
+      <div class="section-header" style="margin-bottom:20px">
+        <div class="section-title">Update Activity Prices</div>
+      </div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:20px;line-height:1.6">
+        Price changes are recorded with a timestamp in the Google Sheet audit log.
+        Historical records are never affected — new rates apply to submissions from today onwards.
+      </p>
+
+      <div id="currentPricesDisplay" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px"></div>
+
+      <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:14px;font-weight:500">New Prices (PKR)</label>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div class="form-group">
+          <label>Chairlift</label>
+          <input type="number" id="pChairlift" min="0" placeholder="e.g. 1900">
+        </div>
+        <div class="form-group">
+          <label>Zipline</label>
+          <input type="number" id="pZipline" min="0" placeholder="e.g. 5000">
+        </div>
+        <div class="form-group">
+          <label>Giant Swing</label>
+          <input type="number" id="pGiantSwing" min="0" placeholder="e.g. 2500">
+        </div>
+        <div class="form-group">
+          <label>Slingshot</label>
+          <input type="number" id="pSlingshot" min="0" placeholder="e.g. 2000">
+        </div>
+        <div class="form-group">
+          <label>Skiing</label>
+          <input type="number" id="pSkiing" min="0" placeholder="e.g. 3000">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Reason for Change</label>
+        <textarea id="pReason" rows="2" placeholder="e.g. Annual rate revision, season adjustment..."></textarea>
+      </div>
+
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Authorised By</label>
+        <select id="pAuthorisedBy">
+          <option value="Martin (GM)">Martin (GM)</option>
+          <option value="DGM">DGM</option>
+          <option value="Samsons Management">Samsons Management</option>
+        </select>
+      </div>
+
+      <div id="priceChangePreview" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:12px"></div>
+
+      <div style="display:flex;gap:12px;align-items:center">
+        <button class="btn-primary" onclick="submitPriceUpdate()">SAVE PRICE UPDATE</button>
+        <span id="priceSubmitStatus" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div>
+      <div class="section-header" style="margin-bottom:16px">
+        <div class="section-title">Price Change History</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Activity</th>
+              <th>Old Price</th>
+              <th>New Price</th>
+              <th>Change</th>
+              <th>Authorised By</th>
+            </tr>
+          </thead>
+          <tbody id="priceAuditBody">
+            <tr><td colspan="6"><div class="empty-state">No price changes recorded yet</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 
 </main>
 
@@ -1541,7 +1650,7 @@ function sendBillEmail() {
 
 // ===== NAVIGATION =====
 function switchTab(tab) {
-  const tabNames = ['dashboard','ledger','submit','billing'];
+  const tabNames = ['dashboard','ledger','submit','billing','pricing'];
   document.querySelectorAll('.tab').forEach(function(t, i) {
     t.classList.toggle('active', tabNames[i] === tab);
   });
@@ -1549,6 +1658,7 @@ function switchTab(tab) {
   document.getElementById('page-' + tab).classList.add('active');
   if (tab === 'ledger') { ledgerPage = 0; renderLedger(); }
   if (tab === 'billing') renderBill();
+  if (tab === 'pricing') { renderCurrentPrices(); loadPriceHistory(); }
 }
 
 // Attach tab click handlers via JS (no inline onclick)
@@ -1559,6 +1669,218 @@ document.addEventListener('DOMContentLoaded', function() {
       const idx = Array.from(document.querySelectorAll('.tab')).indexOf(t);
       switchTab(tabs[idx]);
     });
+  });
+});
+
+
+// ===== PRICING =====
+const ACTIVITY_LABELS = {
+  chairlift: 'Chairlift',
+  zipline: 'Zipline',
+  giant_swing: 'Giant Swing',
+  slingshot: 'Slingshot',
+  skiing: 'Skiing'
+};
+
+function renderCurrentPrices() {
+  const el = document.getElementById('currentPricesDisplay');
+  if (!el) return;
+  let html = '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;font-weight:500">Current Active Prices</div>';
+  Object.keys(PRICES).forEach(function(key) {
+    html += '<div class="price-change-row">' +
+      '<span style="color:var(--text)">' + ACTIVITY_LABELS[key] + '</span>' +
+      '<span style="color:var(--accent)">' + fmt(PRICES[key]) + ' / ticket</span>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+
+  // Pre-fill inputs with current prices
+  document.getElementById('pChairlift').value = PRICES.chairlift;
+  document.getElementById('pZipline').value = PRICES.zipline;
+  document.getElementById('pGiantSwing').value = PRICES.giant_swing;
+  document.getElementById('pSlingshot').value = PRICES.slingshot;
+  document.getElementById('pSkiing').value = PRICES.skiing;
+}
+
+function previewPriceChanges() {
+  const newPrices = {
+    chairlift: parseInt(document.getElementById('pChairlift').value) || PRICES.chairlift,
+    zipline: parseInt(document.getElementById('pZipline').value) || PRICES.zipline,
+    giant_swing: parseInt(document.getElementById('pGiantSwing').value) || PRICES.giant_swing,
+    slingshot: parseInt(document.getElementById('pSlingshot').value) || PRICES.slingshot,
+    skiing: parseInt(document.getElementById('pSkiing').value) || PRICES.skiing
+  };
+
+  const preview = document.getElementById('priceChangePreview');
+  let hasChange = false;
+  let html = '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;font-weight:500">Changes to be saved</div>';
+
+  Object.keys(PRICES).forEach(function(key) {
+    const oldVal = PRICES[key];
+    const newVal = newPrices[key];
+    if (oldVal === newVal) return;
+    hasChange = true;
+    const diff = newVal - oldVal;
+    const cls = diff > 0 ? 'price-up' : 'price-down';
+    const arrow = diff > 0 ? '\u2191' : '\u2193';
+    html += '<div class="price-change-row">' +
+      '<span style="color:var(--text)">' + ACTIVITY_LABELS[key] + '</span>' +
+      '<span>' +
+        '<span style="color:var(--text2)">' + fmt(oldVal) + '</span>' +
+        '<span class="price-arrow">\u2192</span>' +
+        '<span class="' + cls + '">' + fmt(newVal) + '</span>' +
+        '<span class="' + cls + '" style="margin-left:8px">' + arrow + ' ' + fmt(Math.abs(diff)) + '</span>' +
+      '</span>' +
+      '</div>';
+  });
+
+  if (hasChange) {
+    preview.innerHTML = html;
+    preview.style.display = 'block';
+  } else {
+    preview.innerHTML = '<div style="color:var(--text2);font-size:12px">No changes detected from current prices.</div>';
+    preview.style.display = 'block';
+  }
+
+  return { newPrices: newPrices, hasChange: hasChange };
+}
+
+function submitPriceUpdate() {
+  const result = previewPriceChanges();
+  if (!result.hasChange) {
+    showToast('No prices were changed', 'error');
+    return;
+  }
+
+  const reason = document.getElementById('pReason').value.trim();
+  const authorisedBy = document.getElementById('pAuthorisedBy').value;
+
+  if (!reason) {
+    showToast('Please enter a reason for the change', 'error');
+    return;
+  }
+
+  const now = new Date();
+  const changes = [];
+  Object.keys(PRICES).forEach(function(key) {
+    const oldVal = PRICES[key];
+    const newVal = result.newPrices[key];
+    if (oldVal !== newVal) {
+      changes.push({
+        activity: ACTIVITY_LABELS[key],
+        key: key,
+        old_price: oldVal,
+        new_price: newVal,
+        diff: newVal - oldVal
+      });
+    }
+  });
+
+  const payload = {
+    action: 'savePriceUpdate',
+    update: {
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('en-GB'),
+      changes: changes,
+      reason: reason,
+      authorised_by: authorisedBy
+    }
+  };
+
+  document.getElementById('priceSubmitStatus').textContent = 'Saving...';
+
+  // Send to Google Sheets
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success) {
+      document.getElementById('priceSubmitStatus').textContent = 'Saved to audit log';
+      showToast('Price update saved to audit log', 'success');
+    } else {
+      document.getElementById('priceSubmitStatus').textContent = 'Sheet error: ' + (d.error || 'unknown');
+      showToast('Saved locally only', 'error');
+    }
+  }).catch(function() {
+    document.getElementById('priceSubmitStatus').textContent = 'Could not reach Sheet';
+    showToast('Could not save to Sheet', 'error');
+  });
+
+  // Apply new prices in memory immediately
+  Object.keys(result.newPrices).forEach(function(key) {
+    PRICES[key] = result.newPrices[key];
+  });
+
+  // Update audit table locally
+  addToLocalAuditLog(changes, now, reason, authorisedBy);
+
+  // Refresh the current prices display
+  renderCurrentPrices();
+  document.getElementById('priceChangePreview').style.display = 'none';
+  document.getElementById('pReason').value = '';
+}
+
+function addToLocalAuditLog(changes, date, reason, authorisedBy) {
+  const tbody = document.getElementById('priceAuditBody');
+  const dateStr = date.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const timeStr = date.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+  let rows = '';
+  changes.forEach(function(c) {
+    const cls = c.diff > 0 ? 'price-up' : 'price-down';
+    const arrow = c.diff > 0 ? '\u2191' : '\u2193';
+    rows += '<tr>' +
+      '<td style="font-family:monospace;font-size:11px;white-space:nowrap">' + dateStr + ' ' + timeStr + '</td>' +
+      '<td style="font-weight:600">' + c.activity + '</td>' +
+      '<td style="font-family:monospace;font-size:12px;color:var(--text2)">' + fmt(c.old_price) + '</td>' +
+      '<td style="font-family:monospace;font-size:12px;color:var(--accent)">' + fmt(c.new_price) + '</td>' +
+      '<td class="' + cls + '" style="font-family:monospace;font-size:12px">' + arrow + ' ' + fmt(Math.abs(c.diff)) + '</td>' +
+      '<td style="font-size:11px;color:var(--text2)">' + authorisedBy + '</td>' +
+      '</tr>';
+  });
+
+  // Add reason row spanning all columns
+  rows += '<tr><td colspan="6" style="font-size:11px;color:var(--text2);padding:4px 14px 10px;font-style:italic">Reason: ' + reason + '</td></tr>';
+
+  // Remove empty state if present
+  if (tbody.innerHTML.indexOf('No price changes') !== -1) {
+    tbody.innerHTML = '';
+  }
+  tbody.innerHTML = rows + tbody.innerHTML;
+}
+
+function loadPriceHistory() {
+  if (!SCRIPT_URL) return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'getPriceHistory' })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success && d.history && d.history.length > 0) {
+      const tbody = document.getElementById('priceAuditBody');
+      tbody.innerHTML = '';
+      d.history.forEach(function(row) {
+        const cls = parseFloat(row.diff) > 0 ? 'price-up' : 'price-down';
+        const arrow = parseFloat(row.diff) > 0 ? '\u2191' : '\u2193';
+        tbody.innerHTML += '<tr>' +
+          '<td style="font-family:monospace;font-size:11px;white-space:nowrap">' + row.date + '</td>' +
+          '<td style="font-weight:600">' + row.activity + '</td>' +
+          '<td style="font-family:monospace;font-size:12px;color:var(--text2)">' + fmt(parseFloat(row.old_price)) + '</td>' +
+          '<td style="font-family:monospace;font-size:12px;color:var(--accent)">' + fmt(parseFloat(row.new_price)) + '</td>' +
+          '<td class="' + cls + '" style="font-family:monospace;font-size:12px">' + arrow + ' ' + fmt(Math.abs(parseFloat(row.diff))) + '</td>' +
+          '<td style="font-size:11px;color:var(--text2)">' + row.authorised_by + '</td>' +
+          '</tr>';
+      });
+    }
+  }).catch(function() {});
+}
+
+// Wire up live preview on input change
+document.addEventListener('DOMContentLoaded', function() {
+  ['pChairlift','pZipline','pGiantSwing','pSlingshot','pSkiing'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', previewPriceChanges);
   });
 });
 
