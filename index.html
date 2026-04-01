@@ -1665,7 +1665,7 @@ function switchTab(tab) {
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tab').forEach(function(t) {
     t.addEventListener('click', function() {
-      const tabs = ['dashboard','ledger','submit','billing'];
+      const tabs = ['dashboard','ledger','submit','billing','pricing'];
       const idx = Array.from(document.querySelectorAll('.tab')).indexOf(t);
       switchTab(tabs[idx]);
     });
