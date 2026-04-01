@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MJSR PR Fund Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131928;
+    --surface2: #1a2235;
+    --border: #1f2e45;
+    --accent: #e8a020;
+    --accent2: #3b82f6;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #8899bb;
+    --army: #4ade80;
+    --police: #60a5fa;
+    --admin: #f472b6;
+    --forest: #34d399;
+    --judiciary: #a78bfa;
+    --media: #fb923c;
+    --wapda: #fbbf24;
+    --rescue: #f87171;
+    --other: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .logo-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--success);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 32px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 10px 20px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all .2s;
+    letter-spacing: .5px;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--accent);
+    border-color: var(--border);
+    border-bottom-color: var(--bg);
+  }
+  
+  /* MAIN */
+  main { padding: 24px 32px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  
+  /* STAT CARDS */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  .stat-card.danger::before { background: var(--danger); }
+  .stat-card.success::before { background: var(--success); }
+  .stat-card.warn::before { background: var(--warn); }
+  .stat-card.blue::before { background: var(--accent2); }
+  .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .badge-danger { background: rgba(239,68,68,.15); color: var(--danger); }
+  .badge-success { background: rgba(34,197,94,.15); color: var(--success); }
+  .badge-warn { background: rgba(245,158,11,.15); color: var(--warn); }
+  
+  /* SECTION HEADERS */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  
+  /* CHARTS GRID */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-card h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  .chart-wrap { position: relative; }
+  
+  /* BUDGET METERS */
+  .budget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .budget-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .budget-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .budget-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .budget-ref {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .budget-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+    text-align: right;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width .5s ease;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .blocked-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 8px;
+    font-weight: 600;
+  }
+  
+  /* TABLES */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .search-box:focus { border-color: var(--accent2); }
+  .filter-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    min-width: 140px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:hover td { background: var(--surface2); }
+  .dep-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+  .amount-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .type-chip {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .type-tickets { background: rgba(59,130,246,.15); color: var(--accent2); }
+  .type-food { background: rgba(251,146,60,.15); color: #fb923c; }
+  .type-accommodation { background: rgba(167,139,250,.15); color: var(--judiciary); }
+  
+  /* PAGINATION */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .pg-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all .2s;
+  }
+  .pg-btn:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+  .pg-btn:disabled { opacity: .3; cursor: not-allowed; }
+  
+  /* SUBMISSION FORM */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 800px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group.full { grid-column: 1 / -1; }
+  label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
+  
+  /* Ticket quantity inputs */
+  .ticket-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .ticket-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .ticket-input label {
+    display: block;
+    font-size: 10px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .ticket-input input {
+    width: 100%;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    background: var(--bg);
+    padding: 6px;
+  }
+  .ticket-price {
+    font-size: 10px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    margin-top: 4px;
+  }
+  
+  /* Cost preview */
+  .cost-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .cost-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
+  }
+  
+  .budget-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--danger);
+    margin-bottom: 16px;
+  }
+  .budget-ok {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(34,197,94,.08);
+    border: 1px solid rgba(34,197,94,.2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--success);
+    margin-bottom: 16px;
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    transition: all .2s;
+  }
+  .btn-primary:hover { background: #f0b030; transform: translateY(-1px); }
+  .btn-primary:disabled {
+    background: var(--border);
+    color: var(--text2);
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+  }
+  .btn-secondary:hover { border-color: var(--text2); }
+  
+  /* BILLING */
+  .billing-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .bill-preview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .bill-header-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .bill-org {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .bill-sub-org {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .bill-meta { text-align: right; font-size: 12px; color: var(--text2); }
+  .bill-meta strong { color: var(--text); }
+  .bill-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .bill-table th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .bill-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .bill-total-row td {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 14px;
+    border-top: 2px solid var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .bill-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .sig-block { text-align: center; }
+  .sig-line {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0 8px;
+  }
+  .sig-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+  
+  /* MONTH FILTER PILLS */
+  .month-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .month-pill {
+    padding: 5px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    transition: all .2s;
+    letter-spacing: .5px;
+  }
+  .month-pill:hover { border-color: var(--accent2); color: var(--accent2); }
+  .month-pill.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .month-pill.over { border-color: rgba(239,68,68,.5); }
+  .month-pill.over.active { background: var(--danger); border-color: var(--danger); }
+  
+  /* RESPONSIVE */
+  @media(max-width:768px){
+    .chart-grid, .chart-grid-3 { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .ticket-grid { grid-template-columns: repeat(3,1fr); }
+    main { padding: 16px; }
+    header { padding: 0 16px; }
+    .nav-tabs { padding: 12px 16px 0; overflow-x: auto; }
+  }
+  
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 13px;
+    z-index: 999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all .3s;
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--success); }
+  #toast.error { border-color: var(--danger); }
+  
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  
+  .overview-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-badge">MJSR</span>
+    <span class="logo-title">PR Fund Tracker</span>
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      FY 2025/26
+    </div>
+  </div>
+</header>
+
+<div class="nav-tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('ledger')">Transaction Ledger</div>
+  <div class="tab" onclick="switchTab('submit')">New Submission</div>
+  <div class="tab" onclick="switchTab('billing')">Monthly Bills</div>
+</div>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  
+  <div class="month-pills" id="monthPills"></div>
+  
+  <div class="stat-grid" id="statCards"></div>
+  
+  <div class="overview-layout">
+    <div class="chart-card">
+      <h3>Monthly Expenditure vs Budget Cap</h3>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartMonthly"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Spend by Department Type</h3>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartDep"></canvas></div>
+    </div>
+  </div>
+  
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Department Comparison (PKR)</h3>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartDepBar"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>PR Office Allocation Split</h3>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartOffice"></canvas></div>
+    </div>
+  </div>
+  
+  <div class="section-header">
+    <div class="section-title">Budget Status by PR Office</div>
+  </div>
+  <div class="budget-grid" id="budgetCards"></div>
+
+</div>
+
+<!-- LEDGER -->
+<div id="page-ledger" class="page">
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <input class="search-box" type="text" placeholder="Search requester, department..." id="ledgerSearch" oninput="renderLedger()">
+      <select class="filter-select" id="ledgerDepFilter" onchange="renderLedger()">
+        <option value="">All Departments</option>
+      </select>
+      <select class="filter-select" id="ledgerMonthFilter" onchange="renderLedger()">
+        <option value="">All Months</option>
+      </select>
+      <select class="filter-select" id="ledgerOfficeFilter" onchange="renderLedger()">
+        <option value="">All PR Offices</option>
+      </select>
+      <select class="filter-select" id="ledgerTypeFilter" onchange="renderLedger()">
+        <option value="">All Types</option>
+        <option value="tickets">Tickets</option>
+        <option value="food">Food</option>
+        <option value="accommodation">Accommodation</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Requester</th>
+            <th>Department</th>
+            <th>PR Office</th>
+            <th>Type</th>
+            <th>Chairlift</th>
+            <th>Zipline</th>
+            <th>Other</th>
+            <th>Amount (PKR)</th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="ledgerInfo"></span>
+      <div style="display:flex;gap:8px">
+        <button class="pg-btn" id="pgPrev" onclick="ledgerPage--; renderLedger()">&#8592; Prev</button>
+        <button class="pg-btn" id="pgNext" onclick="ledgerPage++; renderLedger()">Next &#8594;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT -->
+<div id="page-submit" class="page">
+  <div class="form-card">
+    <div class="section-header" style="margin-bottom:20px">
+      <div class="section-title">New PR Submission</div>
+    </div>
+    
+    <div id="budgetAlert" style="display:none"></div>
+    
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="form-group">
+        <label>PR Office Reference</label>
+        <select id="fPrRef">
+          <option value="Col Asif">Col Asif</option>
+          <option value="MJ">Malam Jabba (MJ)</option>
+          <option value="Mr. Martin">Mr. Martin</option>
+          <option value="Bilal">Bilal</option>
+          <option value="Col Tahir">Col Tahir</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Requester Name / Description</label>
+        <input type="text" id="fRequester" placeholder="e.g. Brig Ahmed & Family, 6 Brig">
+      </div>
+      <div class="form-group">
+        <label>Government Department</label>
+        <select id="fGovDep">
+          <option value="ARMY">Army</option>
+          <option value="ARMY INT">Army Intelligence</option>
+          <option value="POLICE">Police</option>
+          <option value="ADMIN">Admin (DC/AC/ADC)</option>
+          <option value="FOREST">Forest</option>
+          <option value="JUDICIARY">Judiciary</option>
+          <option value="WAPDA">WAPDA</option>
+          <option value="RESCUE">Rescue 1122</option>
+          <option value="MEDIA">Media</option>
+          <option value="FC">FC / FCSS</option>
+          <option value="TMA">TMA</option>
+          <option value="TOURISM">Tourism</option>
+          <option value="EDUCATION">Education</option>
+          <option value="HEALTH">Health</option>
+          <option value="PNRA">PNRA</option>
+          <option value="PC">PC</option>
+          <option value="PRIVATE">Private</option>
+          <option value="SAMSONS">Samsons Group</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Expense Type</label>
+        <select id="fType" onchange="updateTypeFields()">
+          <option value="tickets">Activity Tickets</option>
+          <option value="food">Food & Beverage</option>
+          <option value="accommodation">Accommodation</option>
+        </select>
+      </div>
+    </div>
+    
+    <div id="ticketSection">
+      <label style="display:block;margin-bottom:12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">Ticket Quantities</label>
+      <div class="ticket-grid">
+        <div class="ticket-input">
+          <label>Chairlift</label>
+          <input type="number" id="tChairlift" value="0" min="0" oninput="calcCost()">
+          <div class="ticket-price">PKR 1,900 / ticket</div>
+        </div>
+        <div class="ticket-input">
+          <label>Zipline</label>
+          <input type="number" id="tZipline" value="0" min="0" oninput="calcCost()">
+          <div class="ticket-price">PKR 5,000 / ticket</div>
+        </div>
+        <div class="ticket-input">
+          <label>Giant Swing</label>
+          <input type="number" id="tGiantSwing" value="0" min="0" oninput="calcCost()">
+          <div class="ticket-price">PKR 2,500 / ticket</div>
+        </div>
+        <div class="ticket-input">
+          <label>Slingshot</label>
+          <input type="number" id="tSlingshot" value="0" min="0" oninput="calcCost()">
+          <div class="ticket-price">PKR 2,000 / ticket</div>
+        </div>
+        <div class="ticket-input">
+          <label>Skiing</label>
+          <input type="number" id="tSkiing" value="0" min="0" oninput="calcCost()">
+          <div class="ticket-price">PKR 3,000 / ticket</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="foodSection" style="display:none">
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Total Food Amount (PKR)</label>
+        <input type="number" id="tFood" value="0" min="0" oninput="calcCost()">
+      </div>
+    </div>
+    
+    <div id="accomSection" style="display:none">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Room Rent (PKR)</label>
+          <input type="number" id="tRoom" value="0" min="0" oninput="calcCost()">
+        </div>
+        <div class="form-group">
+          <label>Food Bill (PKR)</label>
+          <input type="number" id="tAccomFood" value="0" min="0" oninput="calcCost()">
+        </div>
+      </div>
+    </div>
+    
+    <div class="cost-preview" id="costPreview">
+      <div class="cost-total">
+        <span>TOTAL COST</span>
+        <span id="costTotal">PKR 0</span>
+      </div>
+    </div>
+    
+    <div id="budgetStatusBar"></div>
+    
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Comments (optional)</label>
+      <textarea id="fComments" rows="2" placeholder="Additional notes..."></textarea>
+    </div>
+    
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="btn-primary" id="submitBtn" onclick="submitEntry()">SUBMIT ENTRY</button>
+      <button class="btn-secondary" onclick="resetForm()">Clear Form</button>
+      <span id="submitStatus" style="font-size:12px;color:var(--text2)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- BILLING -->
+<div id="page-billing" class="page">
+  <div class="billing-controls">
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Select Month</label>
+      <select class="filter-select" id="billMonth" onchange="renderBill()"></select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">PR Office</label>
+      <select class="filter-select" id="billOffice" onchange="renderBill()">
+        <option value="">All Offices</option>
+        <option value="Col Asif">Col Asif</option>
+        <option value="MJ">MJ</option>
+        <option value="Mr. Martin">Mr. Martin</option>
+        <option value="Bilal">Bilal</option>
+        <option value="Col Tahir">Col Tahir</option>
+      </select>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn-primary" onclick="printBill()">PRINT BILL</button>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn-secondary" onclick="sendBillEmail()">&#128231; Send to Management</button>
+    </div>
+  </div>
+  <div id="billPreview"></div>
+</div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ==================== DATA ====================
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWqdyPxJ-mYOY3BZTPp2rur8JiqeyBhANuWeJJBxCYk6MBymNJfqpFJLynKRLXaJk/exec';
+const MONTHLY_CAP = 233333;
+const PRICES = { chairlift: 1900, zipline: 5000, giant_swing: 2500, slingshot: 2000, skiing: 3000 };
+
+const DEP_COLORS = {
+  'ARMY': '#4ade80', 'ARMY INT': '#86efac', 'POLICE': '#60a5fa', 'ADMIN': '#f472b6',
+  'FOREST': '#34d399', 'JUDICIARY': '#a78bfa', 'WAPDA': '#fbbf24', 'RESCUE': '#f87171',
+  'MEDIA': '#fb923c', 'FC': '#06b6d4', 'TMA': '#818cf8', 'TOURISM': '#e879f9',
+  'EDUCATION': '#6ee7b7', 'HEALTH': '#67e8f9', 'PNRA': '#c084fc', 'PC': '#fda4af',
+  'PRIVATE': '#94a3b8', 'SAMSONS': '#e8a020', 'OTHER': '#64748b'
+};
+
+const MONTHS_ORDER = ['2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'];
+const MONTH_LABELS = {
+  '2025-06':'Jun 25','2025-07':'Jul 25','2025-08':'Aug 25','2025-09':'Sep 25',
+  '2025-10':'Oct 25','2025-11':'Nov 25','2025-12':'Dec 25','2026-01':'Jan 26',
+  '2026-02':'Feb 26','2026-03':'Mar 26'
+};
+
+// Embedded historical data
+let RECORDS = [{"id":1,"date":"2025-07-01","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Brig Touqeer c/o Brig Amir 6 bde","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":2,"date":"2025-07-02","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"mr salman 6 brigade BISE","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":3,"date":"2025-07-02","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"mr niaz TMA charbagh","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":4,"date":"2025-07-02","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"col Imran butt 44 sp","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":5,"date":"2025-07-03","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"DIG police c/o DPO swat","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":6,"date":"2025-07-04","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"Brother of DPO","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":7,"date":"2025-07-05","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"DSP naeem c/o Accharbagh","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":8,"date":"2025-07-05","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"mr,Rafi marwat distt rescue officer","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":9,"date":"2025-07-05","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"mr Fida c/o SHO MJ","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":10,"date":"2025-07-05","month":"2025-07","gov_dep":"JUDGE","pr_ref":"MJ","requester":"mr Kashif judicial magistrate swat","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":11,"date":"2025-07-05","month":"2025-07","gov_dep":"WAPDA","pr_ref":"MJ","requester":"XEN operation wapda swat","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":12,"date":"2025-07-05","month":"2025-07","gov_dep":"FOREST","pr_ref":"MJ","requester":"Conservator forest mr Abid zaman","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":13,"date":"2025-07-05","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"col imtiaz c/o Col Imran 44 sp","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":14,"date":"2025-07-06","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC charbagh guests","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":15,"date":"2025-07-06","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC charbagh guests","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":16,"date":"2025-07-07","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Col Umar ISI sector HQ peshawer","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":17,"date":"2025-07-07","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO MJ family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":18,"date":"2025-07-08","month":"2025-07","gov_dep":"PRIVATE","pr_ref":"MJ","requester":"mr sadam local MJ","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":19,"date":"2025-07-08","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"police audit team c/o DPO swat","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":20,"date":"2025-07-09","month":"2025-07","gov_dep":"FOREST","pr_ref":"MJ","requester":"SDFO mr kamran","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":21,"date":"2025-07-12","month":"2025-07","gov_dep":"GOV DEPT","pr_ref":"MJ","requester":"KPRA staff","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":22,"date":"2025-07-12","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Food magistrate mr Muhsin","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":23,"date":"2025-07-12","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"Wazir Zada ASI","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":24,"date":"2025-07-13","month":"2025-07","gov_dep":"PRIVATE","pr_ref":"MJ","requester":"khalid usman principal Alaf college","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":25,"date":"2025-07-13","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SP Atta Ullah","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":26,"date":"2025-07-13","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"DPO Swat Umar Gandapur Guests","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":27,"date":"2025-07-13","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"HC MJ Police Akhtar Ali","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":28,"date":"2025-07-18","month":"2025-07","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"DC Swat Saleem Jan family","chairlift":14,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":26600,"type":"tickets"},{"id":29,"date":"2025-07-19","month":"2025-07","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Commander Amir family","chairlift":2,"zipline":7,"giant_swing":0,"slingshot":0,"skiing":0,"total":38800,"type":"tickets"},{"id":30,"date":"2025-07-21","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"ADC Mr. Hamid C/O Col Asif","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":31,"date":"2025-07-22","month":"2025-07","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SHO MJ Sharif Ullah family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":32,"date":"2025-07-23","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"MR. Rashid Ali Patwari","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":33,"date":"2025-07-26","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Col Khan Zaman OCISICT Swat","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":34,"date":"2025-07-26","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Col Khalid Rashid OC 909 Int Swat","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":35,"date":"2025-07-26","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Mr. Usman DC PS, AAC Mr. Zakir and staff","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":36,"date":"2025-07-26","month":"2025-07","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Izhar Population director C/O DC Swat","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":37,"date":"2025-07-26","month":"2025-07","gov_dep":"WAPDA","pr_ref":"Col Asif","requester":"WAPDA XEN, SDO,s","chairlift":11,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":20900,"type":"tickets"},{"id":38,"date":"2025-07-26","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Mr. Salar Deputy Director ISI IW","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":39,"date":"2025-07-26","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Mr. Rafi Ullah Marwat Rescue Dist Officer","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":40,"date":"2025-07-29","month":"2025-07","gov_dep":"MEDIA","pr_ref":"MJ","requester":"Sohail Bacha President KP Journalists","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":41,"date":"2025-07-29","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Maj Husnaian Brigade HQ Swat","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":42,"date":"2025-07-31","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"CSO to CM KPK C/O DPO Swat","chairlift":10,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":19000,"type":"tickets"},{"id":43,"date":"2025-08-02","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"DC Saleem Jan & family","chairlift":7,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":13300,"type":"tickets"},{"id":44,"date":"2025-08-03","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Ihsan PSO to commissioner MKD","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":45,"date":"2025-08-05","month":"2025-08","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Mr Rafi ullah district emergency officer 1122 swat","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":46,"date":"2025-08-07","month":"2025-08","gov_dep":"ARMY","pr_ref":"MJ","requester":"Capt Rizwan 44 SP family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":47,"date":"2025-08-08","month":"2025-08","gov_dep":"POLICE","pr_ref":"MJ","requester":"Head constable Asmat GV police","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":48,"date":"2025-08-08","month":"2025-08","gov_dep":"POLICE","pr_ref":"MJ","requester":"HC Asmat GV police","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":49,"date":"2025-08-08","month":"2025-08","gov_dep":"POLICE","pr_ref":"MJ","requester":"DSP charbagh guest c/o wazirzada","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":50,"date":"2025-08-09","month":"2025-08","gov_dep":"PRIVATE","pr_ref":"Col Asif","requester":"Saeed PC family","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":51,"date":"2025-08-09","month":"2025-08","gov_dep":"ARMY INT","pr_ref":"MJ","requester":"Col Noman ISI HQ islamabad c/o IW ISI swat","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":52,"date":"2025-08-09","month":"2025-08","gov_dep":"ARMY","pr_ref":"MJ","requester":"Capt Uzaifa PAF shangla RADAR","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":53,"date":"2025-08-10","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Muhamad Ali C/O AC Charbagh","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":54,"date":"2025-08-10","month":"2025-08","gov_dep":"FC","pr_ref":"MJ","requester":"Mr Sabir Director FCSS","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":55,"date":"2025-08-11","month":"2025-08","gov_dep":"WAPDA","pr_ref":"MJ","requester":"Mr Fazal Munir SDO and supdt wapda swat","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":56,"date":"2025-08-11","month":"2025-08","gov_dep":"POLICE","pr_ref":"MJ","requester":"Mr Zahoor SP swat police","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":57,"date":"2025-08-12","month":"2025-08","gov_dep":"GOV","pr_ref":"Col Asif","requester":"MPA,s of KP Assembly","chairlift":16,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":30400,"type":"tickets"},{"id":58,"date":"2025-08-14","month":"2025-08","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Husnain & Family C/O 44 SP","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":59,"date":"2025-08-14","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Mr. Luqman AC Khwaza Khela C/O AC Charbagh","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":60,"date":"2025-08-14","month":"2025-08","gov_dep":"SAMSONS","pr_ref":"MJ","requester":"Mr. Patrick & Miss Zainab C/O Mr. Martin","chairlift":1,"zipline":1,"giant_swing":0,"slingshot":0,"skiing":0,"total":6900,"type":"tickets"},{"id":61,"date":"2025-08-16","month":"2025-08","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Comander 6 brig Mr. Amir Jamal","chairlift":10,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":19000,"type":"tickets"},{"id":62,"date":"2025-08-29","month":"2025-08","gov_dep":"SAMSONS","pr_ref":"Col Asif","requester":"VIP Guest C/O Col Asif","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":63,"date":"2025-09-05","month":"2025-09","gov_dep":"JUDICIARY","pr_ref":"Col Asif","requester":"Rabia Abbasi Civil Judge","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":64,"date":"2025-09-20","month":"2025-09","gov_dep":"RESCUE","pr_ref":"Col Asif","requester":"DEO Rescue 1122 Rafi Ullah","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":65,"date":"2025-09-20","month":"2025-09","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Abubakar C/O Capt Hamza","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":66,"date":"2025-09-20","month":"2025-09","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DPO Swat Family","chairlift":7,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":13300,"type":"tickets"},{"id":67,"date":"2025-09-24","month":"2025-09","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Commissioner, DC, ADC, AC","chairlift":5,"zipline":1,"giant_swing":0,"slingshot":0,"skiing":0,"total":14500,"type":"tickets"},{"id":68,"date":"2025-09-27","month":"2025-09","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Saeed","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":69,"date":"2025-09-28","month":"2025-09","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Commander 6 Brig Family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":70,"date":"2025-09-28","month":"2025-09","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AAC Zakir","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":71,"date":"2025-10-01","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Asif","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":72,"date":"2025-10-04","month":"2025-10","gov_dep":"RESCUE","pr_ref":"Col Asif","requester":"Rafi Ullah DEO Rescue 1122","chairlift":7,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":13300,"type":"tickets"},{"id":73,"date":"2025-10-04","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Inspector Asad ISI Circut House","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":74,"date":"2025-10-05","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Mr. Muhib ADC G Swat","chairlift":8,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":15200,"type":"tickets"},{"id":75,"date":"2025-10-08","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Capt Waqas & family","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":76,"date":"2025-10-13","month":"2025-10","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"Qarib Ullah SHO MJ  Guests","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":77,"date":"2025-10-17","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Umar ISI W","chairlift":9,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":17100,"type":"tickets"},{"id":78,"date":"2025-10-17","month":"2025-10","gov_dep":"MEDIA","pr_ref":"Col Asif","requester":"Anchor Masood Raza/ Mehboob Geo News","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":79,"date":"2025-10-18","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Ayesha Nasir AC Kabal C/O AC Charbagh","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":80,"date":"2025-10-18","month":"2025-10","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DIG F Fida C/O DSP Kaleem","chairlift":2,"zipline":2,"giant_swing":0,"slingshot":0,"skiing":0,"total":13800,"type":"tickets"},{"id":81,"date":"2025-10-18","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Inspector Saqib ISI Circut House","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":82,"date":"2025-10-19","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Abid","chairlift":4,"zipline":2,"giant_swing":0,"slingshot":0,"skiing":0,"total":17600,"type":"tickets"},{"id":83,"date":"2025-10-19","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Sadaqat Khan PRresedent Anjuman Patwarian","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":84,"date":"2025-10-21","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Islam Uddin C/O AC Charbagh","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":85,"date":"2025-10-21","month":"2025-10","gov_dep":"MEDIA","pr_ref":"Col Asif","requester":"Sherin Zada Press Club Guests","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":86,"date":"2025-10-24","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Lt Coln Saqib MI","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":87,"date":"2025-10-25","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Mubashir C/O Circut House Swat","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":88,"date":"2025-10-31","month":"2025-10","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Ijazi Corp Mess","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":89,"date":"2025-11-01","month":"2025-11","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SP Police and family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":90,"date":"2025-11-01","month":"2025-11","gov_dep":"RESCUE","pr_ref":"Col Asif","requester":"Rafi Ullah DEO Rescue 1122","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":91,"date":"2025-11-01","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Mushahid OC 6 Brig","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":92,"date":"2025-11-08","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Sub Amjad Corp Mess ( Col )","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":93,"date":"2025-11-08","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"MuhammadAli C/O Col Asif","chairlift":10,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":19000,"type":"tickets"},{"id":94,"date":"2025-11-09","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Nauman ADC F Swat","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":95,"date":"2025-11-09","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Usman DC Swat PA","chairlift":1,"zipline":2,"giant_swing":0,"slingshot":0,"skiing":0,"total":11600,"type":"tickets"},{"id":96,"date":"2025-11-11","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Saleem & Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":97,"date":"2025-11-12","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Coln Imran Butt & Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":98,"date":"2025-11-14","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Mr. Younas C/O AC Charbagh","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":99,"date":"2025-11-15","month":"2025-11","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Usman Butt 160 field Malakand","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":100,"date":"2025-11-15","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AC Babozai Syed Arham","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":101,"date":"2025-11-27","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"XEN TMA Family","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":8000,"type":"tickets"},{"id":102,"date":"2025-11-30","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Mr. Ihsan PS to Commissioner Malakand","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":103,"date":"2025-12-04","month":"2025-12","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SHO MalamJabba Javed Family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4800,"type":"tickets"},{"id":104,"date":"2025-12-06","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Malik 6 brig guests","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":105,"date":"2025-12-06","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"OC MI Guests","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":106,"date":"2025-12-10","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"IRO Comd 6 Bde","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3200,"type":"tickets"},{"id":107,"date":"2025-12-13","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"IRO CO 24 C","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":108,"date":"2025-12-13","month":"2025-12","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Commissioner MKD Family","chairlift":3,"zipline":3,"giant_swing":0,"slingshot":0,"skiing":0,"total":20700,"type":"tickets"},{"id":109,"date":"2025-12-14","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"ADC Shangla Hammad","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":110,"date":"2025-12-14","month":"2025-12","gov_dep":"SAMSONS","pr_ref":"Col Asif","requester":"Col Asif","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":111,"date":"2025-12-14","month":"2025-12","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SDO WAPDA Mohsin Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":112,"date":"2025-12-15","month":"2025-12","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Saeed Ur Rahman USDA Family","chairlift":8,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":12800,"type":"tickets"},{"id":113,"date":"2025-12-15","month":"2025-12","gov_dep":"SAMSONS","pr_ref":"Mr. Martin","requester":"Notables from Gilgit Nagar Khas","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3200,"type":"tickets"},{"id":114,"date":"2025-12-16","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"DR Ali C>O 11 Corps","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1600,"type":"tickets"},{"id":115,"date":"2025-12-18","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Orphan School C/O 11 Corps","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4800,"type":"tickets"},{"id":116,"date":"2025-12-18","month":"2025-12","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"Forest Conservator with friends","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":117,"date":"2025-12-20","month":"2025-12","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AC Babozai Arham C/O AC Charbagh","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":118,"date":"2025-12-21","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Capt Burhan 11 Corps","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":119,"date":"2025-12-22","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Coln Zulfiqar MI","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":120,"date":"2025-12-23","month":"2025-12","gov_dep":"MEDIA","pr_ref":"Col Asif","requester":"Quwat Khan 92 News","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3200,"type":"tickets"},{"id":121,"date":"2025-12-24","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"SM 6 Brigade 22","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3200,"type":"tickets"},{"id":122,"date":"2025-12-24","month":"2025-12","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"Forest consarvaitor","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":123,"date":"2025-12-27","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Abid C/O Capt Hamza Corp Mess","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":124,"date":"2025-12-27","month":"2025-12","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Rashid Patwari  Guests","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":125,"date":"2025-12-27","month":"2025-12","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Deputy Sec Development","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":126,"date":"2025-12-28","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"AD Usman ISI IW","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":127,"date":"2025-12-28","month":"2025-12","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Coln Shah Passand","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":128,"date":"2025-12-28","month":"2025-12","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"Special Secertary Forest","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":129,"date":"2025-12-28","month":"2025-12","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"Forest Conservator Abid Sb Family","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":130,"date":"2026-01-29","month":"2025-12","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SSP Mushtaq","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":131,"date":"2026-01-02","month":"2026-01","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"SP Akbar Zeb Famil","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":132,"date":"2026-01-02","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Unit 160 Field","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":133,"date":"2026-01-03","month":"2026-01","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DPO Swat Umar Gandapor with family","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":134,"date":"2026-01-03","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"ADC Swat Muhib Ullah Khan Family","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":135,"date":"2026-01-03","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Junaid MI","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":136,"date":"2026-01-04","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AC Charbagh guests","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":137,"date":"2026-01-04","month":"2026-01","gov_dep":"JUDICIARY","pr_ref":"Col Asif","requester":"Sr. Civil Judge Rabia Abbasi","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":138,"date":"2026-01-04","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Bilal","requester":"Kashif Qayum DC Buner","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":139,"date":"2026-01-06","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Imran MI","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4800,"type":"tickets"},{"id":140,"date":"2026-01-06","month":"2026-01","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"Wazir Zada Guests","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6400,"type":"tickets"},{"id":141,"date":"2026-01-08","month":"2026-01","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"IG KPKP & Family","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":4,"total":9600,"type":"tickets"},{"id":142,"date":"2026-01-09","month":"2026-01","gov_dep":"FC","pr_ref":"Col Asif","requester":"Bajaur Scouts Commandent","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4800,"type":"tickets"},{"id":143,"date":"2026-01-13","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Daughter of Comissioner Malakand","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":3000,"type":"tickets"},{"id":144,"date":"2026-01-13","month":"2026-01","gov_dep":"SAMSONS","pr_ref":"Martin","requester":"Grandson of MD Sb","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":3000,"type":"tickets"},{"id":145,"date":"2026-01-14","month":"2026-01","gov_dep":"SAMSONS","pr_ref":"Martin","requester":"Grandson of MD Sb","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":3000,"type":"tickets"},{"id":146,"date":"2026-01-15","month":"2026-01","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"Wazir Zada Guests","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":6900,"type":"tickets"},{"id":147,"date":"2026-01-16","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Gen Zulfiqar family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":6900,"type":"tickets"},{"id":148,"date":"2026-02-13","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Gen Maqbool & Famly","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":149,"date":"2026-02-13","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"GOC 7 DEV Gen Umar","chairlift":8,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":15200,"type":"tickets"},{"id":150,"date":"2026-02-14","month":"2026-02","gov_dep":"TOURISM","pr_ref":"Col Asif","requester":"DG USDA","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":151,"date":"2026-02-14","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Furqan","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":152,"date":"2026-02-14","month":"2026-02","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AAC Charbagh Zakir","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":153,"date":"2026-02-15","month":"2026-02","gov_dep":"RESCUE","pr_ref":"Col Asif","requester":"Rafi Ullah Marwat Rescue 1122","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":154,"date":"2026-02-17","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Lt Col Wasif Iqbal","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":155,"date":"2026-02-20","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Mehmood Iftikhar GS 11 Corp","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":156,"date":"2026-02-21","month":"2026-02","gov_dep":"PC","pr_ref":"Col Tahir","requester":"Col Sohail Ashraf CSO PC Lahore","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":157,"date":"18/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Nasir DMI - MI Dte","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":158,"date":"18/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Hassam Ud Din Saeed CC Engr 11 Corps","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":159,"date":"18/01/26","month":"2026-01","gov_dep":"MEDIA","pr_ref":"Col Asif","requester":"Shahab Ud Din SAMAA News","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":160,"date":"18/01/26","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AAC Charbagh Zakir","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":161,"date":"19/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Naqash ISI","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":162,"date":"21/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Furqan OC BISE Family","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":163,"date":"21/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Hamza ISI","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":164,"date":"21/01/26","month":"2026-01","gov_dep":"POLICE","pr_ref":"MJ","requester":"SP Nasir Khan SP Security MKD","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":165,"date":"22/01/26","month":"2026-01","gov_dep":"TMA","pr_ref":"Col Asif","requester":"Wazir Zada TMA Office Charbagh","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":166,"date":"22/01/26","month":"2026-01","gov_dep":"MEDIA","pr_ref":"MJ","requester":"Malak Quwat Khan 92 News","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":167,"date":"22/01/26","month":"2026-01","gov_dep":"PRIVATE","pr_ref":"Martin","requester":"Zomb Connection `","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":3,"total":9000,"type":"tickets"},{"id":168,"date":"22/01/26","month":"2026-01","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Afzaal AC Charbagh Guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":2,"total":6000,"type":"tickets"},{"id":169,"date":"24/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Amir Jameel Comd 6 Brgd","chairlift":11,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":2,"total":26900,"type":"tickets"},{"id":170,"date":"24/01/26","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Shahid MI Direct","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":171,"date":"24/01/26","month":"2026-01","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Commissioner MKD Family","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":172,"date":"25/01/25","month":"2026-01","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Col Asad Ur Rahman NDU","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":173,"date":"26/01/26","month":"2026-01","gov_dep":"MEDIA","pr_ref":"MJ","requester":"Sherin Zada HUM News","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":174,"date":"28/01/26","month":"2026-01","gov_dep":"FC","pr_ref":"Col Asif","requester":"IGFC North Guests","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":175,"date":"31/01/26","month":"2026-01","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC Charbagh Nephews","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":176,"date":"31/01/26","month":"2026-01","gov_dep":"PNRA","pr_ref":"Col Asif","requester":"Sajid PNRA","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":177,"date":"2026-02-01","month":"2026-02","gov_dep":"PNRA","pr_ref":"Col Asif","requester":"Sajid PNRA C/O Col Tahir","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":3000,"type":"tickets"},{"id":178,"date":"2026-02-01","month":"2026-02","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Usman PA DC Swat Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":179,"date":"2026-02-02","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Arbab 6 Brig","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":180,"date":"2026-02-02","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Shuja C/O PC Rahmat","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":181,"date":"2026-02-03","month":"2026-02","gov_dep":"ARMY","pr_ref":"MJ","requester":"Abdullah C/O Col Naqash ISI","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":182,"date":"2026-02-03","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Uzair G2 MI","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":183,"date":"2026-02-03","month":"2026-02","gov_dep":"WAPDA","pr_ref":"MJ","requester":"AD WAPDA And WAPDA Audit","chairlift":8,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":15200,"type":"tickets"},{"id":184,"date":"2026-02-03","month":"2026-02","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DPO Swat family","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":185,"date":"2026-02-04","month":"2026-02","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"Manzoor Ahmad DG FPI","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":186,"date":"2026-02-04","month":"2026-02","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Haider DC Swat PA","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":187,"date":"2026-02-04","month":"2026-02","gov_dep":"JUDICIARY","pr_ref":"MJ","requester":"Rabia Abbasi Sr Civil Judge","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":188,"date":"2026-02-04","month":"2026-02","gov_dep":"RESCUE","pr_ref":"Col Asif","requester":"Rafi Ullah DEO Rescue 1122","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":189,"date":"2026-02-04","month":"2026-02","gov_dep":"WAPDA","pr_ref":"Col Asif","requester":"WAPDA AC Mujahid Khan","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":190,"date":"2026-02-04","month":"2026-02","gov_dep":"FOREST","pr_ref":"Col Asif","requester":"SDFO Kamran","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":191,"date":"2026-02-04","month":"2026-02","gov_dep":"POLICE","pr_ref":"MJ","requester":"SP Special Branch Akbar Zeb family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":192,"date":"2026-02-05","month":"2026-02","gov_dep":"JUDICIARY","pr_ref":"MJ","requester":"Sr Civil Judge Rabia Abbasi","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":193,"date":"2026-02-05","month":"2026-02","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO Fazal Raheem","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":194,"date":"2026-02-06","month":"2026-02","gov_dep":"TOURISM","pr_ref":"Col Asif","requester":"Shuzab DG USDA","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":195,"date":"2026-02-06","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Nasir Ghafoor DIR MI","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":196,"date":"2026-02-07","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Saleeha D/O Sec Commander","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":3,"total":9000,"type":"tickets"},{"id":197,"date":"2026-02-07","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Commander guests","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":198,"date":"2026-02-07","month":"2026-02","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DPO Swat family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":199,"date":"2026-02-07","month":"2026-02","gov_dep":"TOURISM","pr_ref":"Col Asif","requester":"SHuzab DG USDA","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":200,"date":"2026-02-07","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Brig Abid C/O Capt Humza","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":201,"date":"2026-02-08","month":"2026-02","gov_dep":"POLICE","pr_ref":"MJ","requester":"Siyab Traffic Inch MalamJabba","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":202,"date":"2026-02-08","month":"2026-02","gov_dep":"ADMIN","pr_ref":"MJ","requester":"Ayesha Nasir AC Kabal","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":203,"date":"2026-02-09","month":"2026-02","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"ADC Swat Nauman & Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":204,"date":"2026-02-09","month":"2026-02","gov_dep":"ARMY","pr_ref":"MJ","requester":"Army Smock exercise","chairlift":0,"zipline":1,"giant_swing":0,"slingshot":0,"skiing":0,"total":5000,"type":"tickets"},{"id":205,"date":"2026-02-10","month":"2026-02","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AC Charbagh, Matta along with 3 other AC,s","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":5,"total":15000,"type":"tickets"},{"id":206,"date":"2026-02-11","month":"2026-02","gov_dep":"RESCUE","pr_ref":"MJ","requester":"Rafi Ullah DEO Rescue 1122","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":1,"total":3000,"type":"tickets"},{"id":207,"date":"2026-02-12","month":"2026-02","gov_dep":"TMA","pr_ref":"MJ","requester":"Niaz Khan TMA","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":208,"date":"2026-02-12","month":"2026-02","gov_dep":"SAMSONS","pr_ref":"Martin","requester":"Ski School interns","chairlift":0,"zipline":8,"giant_swing":0,"slingshot":0,"skiing":0,"total":40000,"type":"tickets"},{"id":209,"date":"2026-02-12","month":"2026-02","gov_dep":"ARMY","pr_ref":"MJ","requester":"Army Smock exercise","chairlift":0,"zipline":1,"giant_swing":0,"slingshot":0,"skiing":0,"total":5000,"type":"tickets"},{"id":210,"date":"2026-02-14","month":"2026-02","gov_dep":"TOURISM","pr_ref":"Col Asif","requester":"DG USDA","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":211,"date":"2026-02-14","month":"2026-02","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Maj Furqan","chairlift":5,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":9500,"type":"tickets"},{"id":212,"date":"2026-02-14","month":"2026-02","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AAC Charbagh Zakir","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":213,"date":"2026-02-14","month":"2026-02","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"DIG Family","chairlift":10,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":19000,"type":"tickets"},{"id":214,"date":"2026-02-14","month":"2026-02","gov_dep":"JUDICIARY","pr_ref":"MJ","requester":"Kabal Courts","chairlift":1,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1900,"type":"tickets"},{"id":215,"date":"2026-02-13","month":"2026-03","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Gen Maqbool & Famly","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":216,"date":"2026-02-17","month":"2026-03","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Saeed Muhammad Tehsildar","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":217,"date":"2026-02-22","month":"2026-03","gov_dep":"POLICE","pr_ref":"MJ","requester":"DIG Operation Aslam Shafi","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":218,"date":"2026-02-22","month":"2026-03","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"BM 6 Brig Family","chairlift":4,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":7600,"type":"tickets"},{"id":219,"date":"2026-02-26","month":"2026-03","gov_dep":"MEDIA","pr_ref":"MJ","requester":"Sherin Zada Media","chairlift":2,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3800,"type":"tickets"},{"id":220,"date":"2026-03-22","month":"2026-03","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC Luqman","chairlift":3,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5700,"type":"tickets"},{"id":221,"date":"2026-03-22","month":"2026-03","gov_dep":"JUDICIARY","pr_ref":"Col Asif","requester":"Shahab Civil Judge Swat","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":222,"date":"2026-03-23","month":"2026-03","gov_dep":"ARMY","pr_ref":"Col Asif","requester":"Com 6 Brig family","chairlift":10,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":19000,"type":"tickets"},{"id":223,"date":"2026-03-24","month":"2026-03","gov_dep":"MEDIA","pr_ref":"MJ","requester":"Sherin Zada Media","chairlift":6,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11400,"type":"tickets"},{"id":224,"date":"2026-03-24","month":"2026-03","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"AC Khwaza Khela Luqman","chairlift":9,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":17100,"type":"tickets"},{"id":225,"date":"2025-06-13","month":"2025-06","gov_dep":"FOREST","pr_ref":"MJ","requester":"forest staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1200,"type":"food"},{"id":226,"date":"2025-06-15","month":"2025-06","gov_dep":"PRIVATE","pr_ref":"MJ","requester":"bank al habib staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":800,"type":"food"},{"id":227,"date":"2025-06-20","month":"2025-06","gov_dep":"POLICE","pr_ref":"MJ","requester":"police staff MJ","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1560,"type":"food"},{"id":228,"date":"2025-06-21","month":"2025-06","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO MJ","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1250,"type":"food"},{"id":229,"date":"2025-06-25","month":"2025-06","gov_dep":"WAPDA","pr_ref":"MJ","requester":"Wapda staff charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1500,"type":"food"},{"id":230,"date":"2025-07-01","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"mr.selab IB swat","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":750,"type":"food"},{"id":231,"date":"2025-07-02","month":"2025-07","gov_dep":"EDU DEPT","pr_ref":"MJ","requester":"mr salman BISE swat","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1170,"type":"food"},{"id":232,"date":"2025-07-02","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"office guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":160,"type":"food"},{"id":233,"date":"2025-07-05","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"elite police commander","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2200,"type":"food"},{"id":234,"date":"2025-07-05","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"police staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1050,"type":"food"},{"id":235,"date":"2025-07-05","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"office guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":550,"type":"food"},{"id":236,"date":"2025-07-06","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"DSP charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2200,"type":"food"},{"id":237,"date":"2025-07-07","month":"2025-07","gov_dep":"PRIVATE","pr_ref":"MJ","requester":"mr sadam sguard","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":800,"type":"food"},{"id":238,"date":"2025-07-07","month":"2025-07","gov_dep":"FOREST","pr_ref":"MJ","requester":"forest staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":600,"type":"food"},{"id":239,"date":"2025-07-08","month":"2025-07","gov_dep":"FOREST","pr_ref":"MJ","requester":"mr Ajmal forest","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2480,"type":"food"},{"id":240,"date":"2025-07-13","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"ASI Wazir zada","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2200,"type":"food"},{"id":241,"date":"2025-07-13","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SP atta ullah","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1150,"type":"food"},{"id":242,"date":"2025-07-15","month":"2025-07","gov_dep":"FOREST","pr_ref":"MJ","requester":"forest staff mr jahangeer","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":580,"type":"food"},{"id":243,"date":"2025-07-15","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AAC charbagh/shangla","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2400,"type":"food"},{"id":244,"date":"2025-07-19","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"police staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2450,"type":"food"},{"id":245,"date":"2025-07-19","month":"2025-07","gov_dep":"EDU DEPT","pr_ref":"MJ","requester":"DEOs swat","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1250,"type":"food"},{"id":246,"date":"2025-07-19","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"Army staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":600,"type":"food"},{"id":247,"date":"2025-07-20","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"Trafic police incharge MJ","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1550,"type":"food"},{"id":248,"date":"2025-07-20","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"top station police staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1500,"type":"food"},{"id":249,"date":"2025-07-21","month":"2025-07","gov_dep":"ARMY","pr_ref":"MJ","requester":"ISI IW guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":12441,"type":"food"},{"id":250,"date":"2025-07-21","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"guests security guard","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":600,"type":"food"},{"id":251,"date":"2025-07-21","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"commissioner office staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2690,"type":"food"},{"id":252,"date":"2025-07-21","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO MJ family","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":10040,"type":"food"},{"id":253,"date":"2025-07-22","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC visit GV for servey","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3380,"type":"food"},{"id":254,"date":"2025-07-23","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO Shareef ullah","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2500,"type":"food"},{"id":255,"date":"2025-07-22","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SHO MJ","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":250,"type":"food"},{"id":256,"date":"2025-07-23","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"DC office staff","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2500,"type":"food"},{"id":257,"date":"2025-07-24","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"police MJ PS","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":862,"type":"food"},{"id":258,"date":"2025-07-25","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AC office guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1725,"type":"food"},{"id":259,"date":"2025-07-26","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"DC swat guest mr Izhar","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":3105,"type":"food"},{"id":260,"date":"2025-07-26","month":"2025-07","gov_dep":"ADMIN","pr_ref":"MJ","requester":"AAC zakir and PS to DC","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2507,"type":"food"},{"id":261,"date":"2025-07-27","month":"2025-07","gov_dep":"RESCUE","pr_ref":"MJ","requester":"Mr Rafi ullah 1122 officer","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2185,"type":"food"},{"id":262,"date":"2025-07-30","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"SP Elite police","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2250,"type":"food"},{"id":263,"date":"2025-07-31","month":"2025-07","gov_dep":"POLICE","pr_ref":"MJ","requester":"MJ police patrolling party","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2160,"type":"food"},{"id":264,"date":"2025-08-02","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"DC Swat Mr. Saleem Jan","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":5451,"type":"food"},{"id":265,"date":"2025-08-03","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Mr Ihsan PSO to commissioner mkd","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":2840,"type":"food"},{"id":266,"date":"2025-08-09","month":"2025-08","gov_dep":"POLICE","pr_ref":"MJ","requester":"DSP Trafic swat","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4140,"type":"food"},{"id":267,"date":"2025-08-10","month":"2025-08","gov_dep":"FOREST","pr_ref":"MJ","requester":"Mr. Ajmal forest","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1330,"type":"food"},{"id":268,"date":"2025-08-12","month":"2025-08","gov_dep":"TMA","pr_ref":"MJ","requester":"TMA official cleaning drive","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":6760,"type":"food"},{"id":269,"date":"2025-08-13","month":"2025-08","gov_dep":"SAMSONS","pr_ref":"MJ","requester":"Col Asif","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":575,"type":"food"},{"id":270,"date":"2025-08-13","month":"2025-08","gov_dep":"SAMSONS","pr_ref":"MJ","requester":"Col Asif","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":800,"type":"food"},{"id":271,"date":"2025-08-29","month":"2025-08","gov_dep":"POLICE","pr_ref":"Col Asif","requester":"Falak Ser Chowki C/O Wazir Zada","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1000,"type":"food"},{"id":272,"date":"2025-08-29","month":"2025-08","gov_dep":"SAMSONS","pr_ref":"Col Asif","requester":"VIP Guest with Col Asif","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1380,"type":"food"},{"id":273,"date":"2025-08-30","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"ADC Swat Nauman Shah C/O AC Charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":1700,"type":"food"},{"id":274,"date":"2025-07-29","month":"2025-07","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Sher Muhammad C/O AC Charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4500,"type":"accommodation"},{"id":275,"date":"2025-08-29","month":"2025-08","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Syed Nauman Ali ADC Swat C/O AC Charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4500,"type":"accommodation"},{"id":276,"date":"2025-10-04","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Liaqat Ali AC Bannu C/O AC Charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4500,"type":"accommodation"},{"id":277,"date":"2025-10-04","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"ADC Swat Muhib Ullah C/O AC Charbagh","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":11250,"type":"accommodation"},{"id":278,"date":"2025-10-25","month":"2025-10","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Faiz Muhammad DC Swat Guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":16070,"type":"accommodation"},{"id":279,"date":"2025-11-02","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Maqsoos Sb SO Foreign AC Charbagh Guests","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4320,"type":"accommodation"},{"id":280,"date":"2025-11-04","month":"2025-11","gov_dep":"ADMIN","pr_ref":"Col Asif","requester":"Syed Hameed ADC Shanga C/O ADC Swat","chairlift":0,"zipline":0,"giant_swing":0,"slingshot":0,"skiing":0,"total":4500,"type":"accommodation"}];
+
+// Session submissions (would go to Google Sheets in full deploy)
+let sessionSubmissions = [];
+
+let selectedMonth = 'all';
+let ledgerPage = 0;
+const PAGE_SIZE = 20;
+let charts = {};
+
+// ==================== HELPERS ====================
+function getAllRecords() {
+  return [...RECORDS, ...sessionSubmissions];
+}
+
+function getFilteredByMonth(month) {
+  if (month === 'all') return getAllRecords();
+  return getAllRecords().filter(r => r.month === month);
+}
+
+function fmt(n) {
+  return 'PKR ' + Math.round(n).toLocaleString('en-PK');
+}
+
+function depChip(dep) {
+  const col = DEP_COLORS[dep] || '#94a3b8';
+  return `<span class="dep-chip" style="background:${col}22;color:${col}">${dep}</span>`;
+}
+
+function monthlyTotal(month) {
+  return getAllRecords().filter(r => r.month === month).reduce((s, r) => s + r.total, 0);
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3500);
+}
+
+// ==================== MONTH PILLS ====================
+function renderMonthPills() {
+  const months = MONTHS_ORDER.filter(m => getAllRecords().some(r => r.month === m));
+  const pills = document.getElementById('monthPills');
+  pills.innerHTML = '<div class="month-pill ' + (selectedMonth==='all'?'active':'') + '" onclick="selectMonth('all')">ALL TIME</div>' +
+    months.map(m => {
+      const total = monthlyTotal(m);
+      const isOver = total > MONTHLY_CAP;
+      return `<div class="month-pill ${isOver?'over':''} ${selectedMonth===m?'active':''}" onclick="selectMonth('${m}')">${MONTH_LABELS[m]||m}${isOver?' ⚠':''}</div>`;
+    }).join('');
+}
+
+function selectMonth(m) {
+  selectedMonth = m;
+  renderMonthPills();
+  renderStatCards();
+  updateCharts();
+  renderBudgetCards();
+}
+
+// ==================== STAT CARDS ====================
+function renderStatCards() {
+  const recs = getFilteredByMonth(selectedMonth);
+  const totalSpend = recs.reduce((s,r) => s+r.total, 0);
+  const uniqueDeps = [...new Set(recs.map(r => r.gov_dep))].length;
+  const uniqueOffices = [...new Set(recs.map(r => r.pr_ref).filter(Boolean))].length;
+  
+  let budgetInfo = '';
+  if (selectedMonth !== 'all') {
+    const remaining = MONTHLY_CAP - totalSpend;
+    const pct = Math.min(100, (totalSpend/MONTHLY_CAP)*100);
+    if (remaining < 0) {
+      budgetInfo = `<span class="stat-badge badge-danger">⚠ OVER BY ${fmt(Math.abs(remaining))}</span>`;
+    } else {
+      budgetInfo = `<span class="stat-badge badge-success">Remaining: ${fmt(remaining)}</span>`;
+    }
+  }
+  
+  const monthsOver = MONTHS_ORDER.filter(m => monthlyTotal(m) > MONTHLY_CAP).length;
+  
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card ${selectedMonth!=='all' && totalSpend>MONTHLY_CAP ? 'danger' : 'success'}">
+      <div class="stat-label">Total PR Expenditure</div>
+      <div class="stat-value">${fmt(totalSpend)}</div>
+      ${budgetInfo}
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Total Transactions</div>
+      <div class="stat-value">${recs.length}</div>
+      <div class="stat-sub">${selectedMonth==='all'?'All time':MONTH_LABELS[selectedMonth]}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monthly Budget Cap</div>
+      <div class="stat-value">${fmt(MONTHLY_CAP)}</div>
+      <div class="stat-sub">Per month limit</div>
+    </div>
+    <div class="stat-card ${monthsOver>0?'warn':'success'}">
+      <div class="stat-label">Months Over Budget</div>
+      <div class="stat-value">${monthsOver} / ${MONTHS_ORDER.filter(m=>monthlyTotal(m)>0).length}</div>
+      <div class="stat-sub">${monthsOver>0?`${monthsOver} month(s) exceeded cap`:'All months within budget'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Departments Served</div>
+      <div class="stat-value">${uniqueDeps}</div>
+      <div class="stat-sub">${uniqueOffices} PR offices active</div>
+    </div>
+  `;
+}
+
+// ==================== CHARTS ====================
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function updateCharts() {
+  const recs = getFilteredByMonth(selectedMonth);
+  
+  // Monthly bar chart
+  destroyChart('monthly');
+  const months = MONTHS_ORDER.filter(m => getAllRecords().some(r => r.month === m));
+  const monthTotals = months.map(m => monthlyTotal(m));
+  const ctx1 = document.getElementById('chartMonthly').getContext('2d');
+  charts['monthly'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: months.map(m => MONTH_LABELS[m]||m),
+      datasets: [
+        {
+          label: 'Expenditure',
+          data: monthTotals,
+          backgroundColor: monthTotals.map(t => t > MONTHLY_CAP ? 'rgba(239,68,68,0.7)' : 'rgba(59,130,246,0.7)'),
+          borderColor: monthTotals.map(t => t > MONTHLY_CAP ? '#ef4444' : '#3b82f6'),
+          borderWidth: 1, borderRadius: 4
+        },
+        {
+          label: 'Budget Cap',
+          data: months.map(() => MONTHLY_CAP),
+          type: 'line',
+          borderColor: '#e8a020',
+          borderDash: [6,3],
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8899bb', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#8899bb', font: { size: 10 } }, grid: { color: '#1f2e45' } },
+        y: { ticks: { color: '#8899bb', font: { size: 10 }, callback: v => 'PKR '+Math.round(v/1000)+'k' }, grid: { color: '#1f2e45' } }
+      }
+    }
+  });
+  
+  // Department donut
+  destroyChart('dep');
+  const depTotals = {};
+  recs.forEach(r => { depTotals[r.gov_dep] = (depTotals[r.gov_dep]||0) + r.total; });
+  const depSorted = Object.entries(depTotals).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx2 = document.getElementById('chartDep').getContext('2d');
+  charts['dep'] = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: depSorted.map(d=>d[0]),
+      datasets: [{ data: depSorted.map(d=>d[1]), backgroundColor: depSorted.map(d=>DEP_COLORS[d[0]]||'#64748b'), borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#8899bb', font: { size: 10 }, boxWidth: 12, padding: 8 } } },
+      cutout: '65%'
+    }
+  });
+  
+  // Department bar
+  destroyChart('depBar');
+  const ctx3 = document.getElementById('chartDepBar').getContext('2d');
+  charts['depBar'] = new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: depSorted.map(d=>d[0]),
+      datasets: [{
+        label: 'PKR',
+        data: depSorted.map(d=>d[1]),
+        backgroundColor: depSorted.map(d=>(DEP_COLORS[d[0]]||'#64748b')+'99'),
+        borderColor: depSorted.map(d=>DEP_COLORS[d[0]]||'#64748b'),
+        borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899bb', font:{size:10}, callback: v => 'PKR '+Math.round(v/1000)+'k' }, grid: { color: '#1f2e45' } },
+        y: { ticks: { color: '#8899bb', font:{size:11} }, grid: { color: '#1f2e45' } }
+      }
+    }
+  });
+  
+  // PR Office pie
+  destroyChart('office');
+  const officeTotals = {};
+  recs.forEach(r => { const k=r.pr_ref||'Unknown'; officeTotals[k]=(officeTotals[k]||0)+r.total; });
+  const offSorted = Object.entries(officeTotals).sort((a,b)=>b[1]-a[1]);
+  const offColors = ['#e8a020','#3b82f6','#4ade80','#f472b6','#a78bfa','#fb923c'];
+  const ctx4 = document.getElementById('chartOffice').getContext('2d');
+  charts['office'] = new Chart(ctx4, {
+    type: 'pie',
+    data: {
+      labels: offSorted.map(d=>d[0]),
+      datasets: [{ data: offSorted.map(d=>d[1]), backgroundColor: offSorted.map((_,i)=>offColors[i%offColors.length]), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#8899bb', font:{size:10}, boxWidth:12, padding:8 } } }
+    }
+  });
+}
+
+// ==================== BUDGET CARDS ====================
+function renderBudgetCards() {
+  const month = selectedMonth === 'all' ? new Date().toISOString().slice(0,7) : selectedMonth;
+  const recs = getAllRecords().filter(r => r.month === month);
+  
+  const offices = ['Col Asif','MJ','Mr. Martin','Bilal','Col Tahir'];
+  const byOffice = {};
+  offices.forEach(o => { byOffice[o] = 0; });
+  recs.forEach(r => { if(r.pr_ref && byOffice[r.pr_ref] !== undefined) byOffice[r.pr_ref] += r.total; });
+  
+  const totalSpend = recs.reduce((s,r)=>s+r.total,0);
+  const remaining = MONTHLY_CAP - totalSpend;
+  const pct = Math.min(100, (totalSpend/MONTHLY_CAP)*100);
+  const isBlocked = totalSpend >= MONTHLY_CAP;
+  
+  let html = `
+    <div class="budget-card" style="border-color:${isBlocked?'rgba(239,68,68,.4)':'var(--border)'}">
+      <div class="budget-top">
+        <div>
+          <div class="budget-name">MJSR Monthly Budget</div>
+          <div class="budget-ref">${MONTH_LABELS[month]||month}</div>
+        </div>
+        <div class="budget-amount">
+          <div style="color:var(--accent);font-size:14px">${fmt(totalSpend)}</div>
+          <div>of ${fmt(MONTHLY_CAP)}</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${isBlocked?'var(--danger)':pct>80?'var(--warn)':'var(--success)'}"></div></div>
+      <div class="progress-meta"><span>${pct.toFixed(1)}% used</span><span>${isBlocked?'OVER BUDGET':fmt(remaining)+' left'}</span></div>
+      ${isBlocked ? '<div class="blocked-banner">🔒 SUBMISSIONS BLOCKED — BUDGET CAP REACHED</div>' : ''}
+    </div>
+  `;
+  
+  offices.forEach(o => {
+    const spent = byOffice[o] || 0;
+    if (spent === 0) return;
+    const opct = Math.min(100, (spent/totalSpend)*100);
+    html += `
+      <div class="budget-card">
+        <div class="budget-top">
+          <div>
+            <div class="budget-name">${o}</div>
+            <div class="budget-ref">PR Office</div>
+          </div>
+          <div class="budget-amount"><div style="color:var(--accent2)">${fmt(spent)}</div><div>${opct.toFixed(1)}% of month</div></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${opct}%;background:var(--accent2)"></div></div>
+        <div class="progress-meta"><span>${recs.filter(r=>r.pr_ref===o).length} transactions</span></div>
+      </div>
+    `;
+  });
+  
+  document.getElementById('budgetCards').innerHTML = html;
+}
+
+// ==================== LEDGER ====================
+function initLedgerFilters() {
+  const deps = [...new Set(getAllRecords().map(r=>r.gov_dep).filter(Boolean))].sort();
+  const months = MONTHS_ORDER.filter(m => getAllRecords().some(r=>r.month===m));
+  const offices = [...new Set(getAllRecords().map(r=>r.pr_ref).filter(Boolean))].sort();
+  
+  const depSel = document.getElementById('ledgerDepFilter');
+  deps.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; depSel.appendChild(o); });
+  
+  const monSel = document.getElementById('ledgerMonthFilter');
+  months.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=MONTH_LABELS[m]||m; monSel.appendChild(o); });
+  
+  const offSel = document.getElementById('ledgerOfficeFilter');
+  offices.forEach(off => { const o=document.createElement('option'); o.value=off; o.textContent=off; offSel.appendChild(o); });
+}
+
+function renderLedger() {
+  const search = document.getElementById('ledgerSearch').value.toLowerCase();
+  const dep = document.getElementById('ledgerDepFilter').value;
+  const month = document.getElementById('ledgerMonthFilter').value;
+  const office = document.getElementById('ledgerOfficeFilter').value;
+  const type = document.getElementById('ledgerTypeFilter').value;
+  
+  let recs = getAllRecords().filter(r => {
+    if (dep && r.gov_dep !== dep) return false;
+    if (month && r.month !== month) return false;
+    if (office && r.pr_ref !== office) return false;
+    if (type && r.type !== type) return false;
+    if (search) {
+      const hay = (r.requester+r.gov_dep+r.pr_ref+r.month).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  
+  recs.sort((a,b) => (b.date||b.month).localeCompare(a.date||a.month));
+  
+  const total = recs.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (ledgerPage >= pages) ledgerPage = Math.max(0, pages-1);
+  const slice = recs.slice(ledgerPage*PAGE_SIZE, (ledgerPage+1)*PAGE_SIZE);
+  
+  const body = document.getElementById('ledgerBody');
+  if (slice.length === 0) {
+    body.innerHTML = '<tr><td colspan="10"><div class="empty-state">No records found</div></td></tr>';
+  } else {
+    body.innerHTML = slice.map((r, i) => `
+      <tr>
+        <td style="color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px">${ledgerPage*PAGE_SIZE+i+1}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap">${r.date||r.month}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.requester}">${r.requester}</td>
+        <td>${depChip(r.gov_dep)}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.pr_ref||'-'}</td>
+        <td><span class="type-chip type-${r.type}">${r.type}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)">${r.chairlift||0}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)">${r.zipline||0}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)">${(r.giant_swing||0)+(r.slingshot||0)+(r.skiing||0)}</td>
+        <td class="amount-cell">${fmt(r.total)}</td>
+      </tr>
+    `).join('');
+  }
+  
+  document.getElementById('ledgerInfo').textContent = `Showing ${ledgerPage*PAGE_SIZE+1}–${Math.min((ledgerPage+1)*PAGE_SIZE,total)} of ${total} records`;
+  document.getElementById('pgPrev').disabled = ledgerPage === 0;
+  document.getElementById('pgNext').disabled = ledgerPage >= pages-1;
+}
+
+// ==================== SUBMIT FORM ====================
+function updateTypeFields() {
+  const type = document.getElementById('fType').value;
+  document.getElementById('ticketSection').style.display = type==='tickets'?'block':'none';
+  document.getElementById('foodSection').style.display = type==='food'?'block':'none';
+  document.getElementById('accomSection').style.display = type==='accommodation'?'block':'none';
+  calcCost();
+}
+
+function calcCost() {
+  const type = document.getElementById('fType').value;
+  let total = 0;
+  let preview = '';
+  
+  if (type === 'tickets') {
+    const cl = parseInt(document.getElementById('tChairlift').value)||0;
+    const zl = parseInt(document.getElementById('tZipline').value)||0;
+    const gs = parseInt(document.getElementById('tGiantSwing').value)||0;
+    const sl = parseInt(document.getElementById('tSlingshot').value)||0;
+    const sk = parseInt(document.getElementById('tSkiing').value)||0;
+    const costs = [
+      { label:'Chairlift', qty:cl, price:1900 },
+      { label:'Zipline', qty:zl, price:5000 },
+      { label:'Giant Swing', qty:gs, price:2500 },
+      { label:'Slingshot', qty:sl, price:2000 },
+      { label:'Skiing', qty:sk, price:3000 }
+    ].filter(c=>c.qty>0);
+    costs.forEach(c => {
+      const line = c.qty * c.price;
+      total += line;
+      preview += `<div class="cost-row"><span>${c.label} × ${c.qty}</span><span>${fmt(line)}</span></div>`;
+    });
+  } else if (type === 'food') {
+    total = parseFloat(document.getElementById('tFood').value)||0;
+    preview = `<div class="cost-row"><span>Food & Beverage</span><span>${fmt(total)}</span></div>`;
+  } else {
+    const room = parseFloat(document.getElementById('tRoom').value)||0;
+    const food = parseFloat(document.getElementById('tAccomFood').value)||0;
+    total = room + food;
+    if (room>0) preview += `<div class="cost-row"><span>Room Rent</span><span>${fmt(room)}</span></div>`;
+    if (food>0) preview += `<div class="cost-row"><span>Food Bill</span><span>${fmt(food)}</span></div>`;
+  }
+  
+  document.getElementById('costPreview').innerHTML = preview + `
+    <div class="cost-total"><span>TOTAL COST</span><span id="costTotal">${fmt(total)}</span></div>`;
+  
+  // Check budget
+  const dateVal = document.getElementById('fDate').value;
+  if (dateVal && total > 0) {
+    const month = dateVal.slice(0,7);
+    const currentSpend = getAllRecords().filter(r=>r.month===month).reduce((s,r)=>s+r.total,0);
+    const newTotal = currentSpend + total;
+    const isBlocked = currentSpend >= MONTHLY_CAP;
+    const willExceed = newTotal > MONTHLY_CAP;
+    
+    const bar = document.getElementById('budgetStatusBar');
+    const btn = document.getElementById('submitBtn');
+    
+    if (isBlocked) {
+      bar.innerHTML = `<div class="budget-warning">🔒 <div><strong>SUBMISSIONS BLOCKED</strong><br>Monthly budget of ${fmt(MONTHLY_CAP)} has been reached for ${month}. No further submissions can be made against this month's PR budget.</div></div>`;
+      btn.disabled = true;
+    } else if (willExceed) {
+      bar.innerHTML = `<div class="budget-warning">⚠️ <div><strong>WARNING: This submission will exceed the monthly cap.</strong><br>Current spend: ${fmt(currentSpend)} | This entry: ${fmt(total)} | New total: ${fmt(newTotal)} (over by ${fmt(newTotal-MONTHLY_CAP)})</div></div>`;
+      btn.disabled = false;
+    } else {
+      bar.innerHTML = `<div class="budget-ok">✓ Budget available. After this entry: ${fmt(newTotal)} of ${fmt(MONTHLY_CAP)} (${fmt(MONTHLY_CAP-newTotal)} remaining)</div>`;
+      btn.disabled = false;
+    }
+  } else {
+    document.getElementById('budgetStatusBar').innerHTML = '';
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+function submitEntry() {
+  const date = document.getElementById('fDate').value;
+  const prRef = document.getElementById('fPrRef').value;
+  const requester = document.getElementById('fRequester').value.trim();
+  const govDep = document.getElementById('fGovDep').value;
+  const type = document.getElementById('fType').value;
+  const comments = document.getElementById('fComments').value;
+  
+  if (!date || !requester) {
+    showToast('Please fill in date and requester', 'error');
+    return;
+  }
+  
+  const month = date.slice(0,7);
+  const currentSpend = getAllRecords().filter(r=>r.month===month).reduce((s,r)=>s+r.total,0);
+  
+  if (currentSpend >= MONTHLY_CAP) {
+    showToast('BLOCKED: Monthly budget cap reached', 'error');
+    return;
+  }
+  
+  let total = 0, cl=0, zl=0, gs=0, sl=0, sk=0;
+  if (type === 'tickets') {
+    cl = parseInt(document.getElementById('tChairlift').value)||0;
+    zl = parseInt(document.getElementById('tZipline').value)||0;
+    gs = parseInt(document.getElementById('tGiantSwing').value)||0;
+    sl = parseInt(document.getElementById('tSlingshot').value)||0;
+    sk = parseInt(document.getElementById('tSkiing').value)||0;
+    total = cl*1900 + zl*5000 + gs*2500 + sl*2000 + sk*3000;
+  } else if (type === 'food') {
+    total = parseFloat(document.getElementById('tFood').value)||0;
+  } else {
+    total = (parseFloat(document.getElementById('tRoom').value)||0) + (parseFloat(document.getElementById('tAccomFood').value)||0);
+  }
+  
+  if (total <= 0) {
+    showToast('Please enter at least one item', 'error');
+    return;
+  }
+  
+  const entry = {
+    id: Date.now(),
+    date, month,
+    gov_dep: govDep,
+    pr_ref: prRef,
+    requester,
+    chairlift: cl, zipline: zl, giant_swing: gs, slingshot: sl, skiing: sk,
+    total,
+    type,
+    comments,
+    submitted_at: new Date().toISOString()
+  };
+  
+  sessionSubmissions.push(entry);
+  
+  // Try to send to Google Sheets
+  if (SCRIPT_URL && SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    document.getElementById('submitStatus').textContent = 'Saving to Sheets...';
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'addEntry', entry })
+    }).then(r => r.json()).then(d => {
+      document.getElementById('submitStatus').textContent = d.success ? '✓ Saved to Sheets' : '⚠ Local only';
+    }).catch(() => {
+      document.getElementById('submitStatus').textContent = '⚠ Local only';
+    });
+  }
+  
+  showToast(`Entry submitted: ${fmt(total)}`, 'success');
+  renderMonthPills();
+  renderStatCards();
+  updateCharts();
+  renderBudgetCards();
+  resetForm();
+}
+
+function resetForm() {
+  document.getElementById('fDate').value = '';
+  document.getElementById('fRequester').value = '';
+  document.getElementById('fComments').value = '';
+  document.getElementById('tChairlift').value = 0;
+  document.getElementById('tZipline').value = 0;
+  document.getElementById('tGiantSwing').value = 0;
+  document.getElementById('tSlingshot').value = 0;
+  document.getElementById('tSkiing').value = 0;
+  document.getElementById('tFood').value = 0;
+  document.getElementById('tRoom').value = 0;
+  document.getElementById('tAccomFood').value = 0;
+  document.getElementById('budgetStatusBar').innerHTML = '';
+  document.getElementById('costPreview').innerHTML = '<div class="cost-total"><span>TOTAL COST</span><span>PKR 0</span></div>';
+  document.getElementById('submitStatus').textContent = '';
+}
+
+// ==================== BILLING ====================
+function initBillMonth() {
+  const sel = document.getElementById('billMonth');
+  const months = MONTHS_ORDER.filter(m => getAllRecords().some(r=>r.month===m));
+  months.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m;
+    o.textContent = MONTH_LABELS[m]||m;
+    sel.appendChild(o);
+  });
+  if (months.length) sel.value = months[months.length-1];
+}
+
+function renderBill() {
+  const month = document.getElementById('billMonth').value;
+  const office = document.getElementById('billOffice').value;
+  
+  let recs = getAllRecords().filter(r => r.month === month);
+  if (office) recs = recs.filter(r => r.pr_ref === office);
+  
+  const totalSpend = recs.reduce((s,r)=>s+r.total,0);
+  const isOver = totalSpend > MONTHLY_CAP;
+  
+  // Group by dep
+  const byDep = {};
+  recs.forEach(r => { byDep[r.gov_dep] = (byDep[r.gov_dep]||[]); byDep[r.gov_dep].push(r); });
+  
+  const monthLabel = MONTH_LABELS[month]||month;
+  const billNo = 'MJSR-PR-' + month.replace('-','') + (office?'-'+office.replace(' ','').toUpperCase():'');
+  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  
+  let rows = '';
+  recs.sort((a,b)=>(a.date||a.month).localeCompare(b.date||b.month)).forEach((r,i) => {
+    const col = DEP_COLORS[r.gov_dep]||'#94a3b8';
+    rows += `<tr>
+      <td style="color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px">${i+1}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${r.date||'-'}</td>
+      <td>${r.requester}</td>
+      <td><span style="background:${col}22;color:${col};padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700">${r.gov_dep}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${r.pr_ref||'-'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;text-align:right;color:var(--accent)">${fmt(r.total)}</td>
+    </tr>`;
+  });
+  
+  document.getElementById('billPreview').innerHTML = `
+    <div class="bill-preview" id="billContent">
+      <div class="bill-header-block">
+        <div>
+          <div class="bill-org">MALAM JABBA SKI RESORT</div>
+          <div class="bill-sub-org">Samsons Group of Companies</div>
+          <div class="bill-sub-org" style="margin-top:4px">PR FUND MONTHLY STATEMENT</div>
+        </div>
+        <div class="bill-meta">
+          <div><strong>Bill No:</strong> ${billNo}</div>
+          <div><strong>Period:</strong> ${monthLabel}</div>
+          <div><strong>Generated:</strong> ${today}</div>
+          <div style="margin-top:8px"><strong>PR Office:</strong> ${office||'All Offices'}</div>
+          ${isOver ? '<div style="color:var(--danger);margin-top:6px;font-weight:700">⚠ BUDGET EXCEEDED</div>' : ''}
+        </div>
+      </div>
+      
+      <table class="bill-table">
+        <thead><tr><th>#</th><th>Date</th><th>Requester</th><th>Department</th><th>PR Ref</th><th style="text-align:right">Amount (PKR)</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="bill-total-row">
+            <td colspan="5" style="text-align:right">TOTAL EXPENDITURE</td>
+            <td style="text-align:right">${fmt(totalSpend)}</td>
+          </tr>
+          <tr>
+            <td colspan="5" style="text-align:right;font-size:11px;color:var(--text2)">Monthly Budget Cap</td>
+            <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);border-top:none">${fmt(MONTHLY_CAP)}</td>
+          </tr>
+          <tr>
+            <td colspan="5" style="text-align:right;font-size:11px;color:${isOver?'var(--danger)':'var(--success)'}">${isOver?'Over Budget By':'Remaining Budget'}</td>
+            <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:${isOver?'var(--danger)':'var(--success)'};border-top:none">${fmt(Math.abs(MONTHLY_CAP-totalSpend))}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <div class="bill-footer">
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label">Martin (GM)</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">General Manager, MJSR</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label">DGM</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Deputy General Manager</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <div class="sig-label">Admin Manager</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Administration Manager</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function printBill() {
+  window.print();
+}
+
+function sendBillEmail() {
+  showToast('Bill summary copied. Connect Google Apps Script to auto-email management.', 'success');
+}
+
+// ==================== NAVIGATION ====================
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const tabs = ['dashboard','ledger','submit','billing'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  
+  if (tab === 'ledger') { ledgerPage = 0; renderLedger(); }
+  if (tab === 'billing') renderBill();
+}
+
+// ==================== INIT ====================
+function init() {
+  // Set today's date on form
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  
+  renderMonthPills();
+  renderStatCards();
+  updateCharts();
+  renderBudgetCards();
+  initLedgerFilters();
+  initBillMonth();
+}
+
+init();
+</script>
+
+<style>
+@media print {
+  header, .nav-tabs, main > *:not(#page-billing), .billing-controls, #page-billing .billing-controls { display: none !important; }
+  #page-billing { display: block !important; }
+  .bill-preview { background: white !important; color: black !important; border: none; }
+  .bill-org { color: #b8860b !important; }
+}
+</style>
+</body>
+</html>
