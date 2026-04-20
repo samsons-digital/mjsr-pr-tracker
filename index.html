@@ -876,7 +876,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Date</label>
-        <input type="date" id="fDate">
+        <input type="date" id="fDate" onchange="updatePriceHints()">
       </div>
       <div class="form-group">
         <label>PR Office Reference</label>
@@ -929,27 +929,27 @@
         <div class="ticket-input">
           <label>Chairlift</label>
           <input type="number" id="tChairlift" value="0" min="0" oninput="calcCost()">
-          <div class="ticket-price">PKR 1,900 / ticket</div>
+          <div class="ticket-price" id="priceHint_chairlift">PKR 1,900 / ticket</div>
         </div>
         <div class="ticket-input">
           <label>Zipline</label>
           <input type="number" id="tZipline" value="0" min="0" oninput="calcCost()">
-          <div class="ticket-price">PKR 5,000 / ticket</div>
+          <div class="ticket-price" id="priceHint_zipline">PKR 5,000 / ticket</div>
         </div>
         <div class="ticket-input">
           <label>Giant Swing</label>
           <input type="number" id="tGiantSwing" value="0" min="0" oninput="calcCost()">
-          <div class="ticket-price">PKR 2,500 / ticket</div>
+          <div class="ticket-price" id="priceHint_giant_swing">PKR 2,500 / ticket</div>
         </div>
         <div class="ticket-input">
           <label>Slingshot</label>
           <input type="number" id="tSlingshot" value="0" min="0" oninput="calcCost()">
-          <div class="ticket-price">PKR 2,000 / ticket</div>
+          <div class="ticket-price" id="priceHint_slingshot">PKR 2,000 / ticket</div>
         </div>
         <div class="ticket-input">
           <label>Skiing</label>
           <input type="number" id="tSkiing" value="0" min="0" oninput="calcCost()">
-          <div class="ticket-price">PKR 3,000 / ticket</div>
+          <div class="ticket-price" id="priceHint_skiing">PKR 3,000 / ticket</div>
         </div>
       </div>
     </div>
@@ -1040,27 +1040,40 @@
 
       <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:14px;font-weight:500">New Prices (PKR)</label>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-        <div class="form-group">
-          <label>Chairlift</label>
-          <input type="number" id="pChairlift" min="0" placeholder="e.g. 1900">
+      <!-- Column headers -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding-top:8px">Activity</div>
+        <div style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);letter-spacing:1px">WEEKDAY</div>
+          <div style="font-size:10px;color:var(--text2)">Mon - Thu</div>
         </div>
-        <div class="form-group">
-          <label>Zipline</label>
-          <input type="number" id="pZipline" min="0" placeholder="e.g. 5000">
+        <div style="background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.3);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px">WEEKEND</div>
+          <div style="font-size:10px;color:var(--text2)">Fri - Sun</div>
         </div>
-        <div class="form-group">
-          <label>Giant Swing</label>
-          <input type="number" id="pGiantSwing" min="0" placeholder="e.g. 2500">
-        </div>
-        <div class="form-group">
-          <label>Slingshot</label>
-          <input type="number" id="pSlingshot" min="0" placeholder="e.g. 2000">
-        </div>
-        <div class="form-group">
-          <label>Skiing</label>
-          <input type="number" id="pSkiing" min="0" placeholder="e.g. 3000">
-        </div>
+      </div>
+
+      <!-- Activity rows -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 12px;margin-bottom:16px;align-items:center">
+        <div style="font-size:13px;color:var(--text);font-weight:500">Chairlift</div>
+        <input type="number" id="pChairlift_WD" min="0" placeholder="WD rate" style="border-color:rgba(59,130,246,.4)">
+        <input type="number" id="pChairlift_WE" min="0" placeholder="WE rate" style="border-color:rgba(232,160,32,.4)">
+
+        <div style="font-size:13px;color:var(--text);font-weight:500">Zipline</div>
+        <input type="number" id="pZipline_WD" min="0" placeholder="WD rate" style="border-color:rgba(59,130,246,.4)">
+        <input type="number" id="pZipline_WE" min="0" placeholder="WE rate" style="border-color:rgba(232,160,32,.4)">
+
+        <div style="font-size:13px;color:var(--text);font-weight:500">Giant Swing</div>
+        <input type="number" id="pGiantSwing_WD" min="0" placeholder="WD rate" style="border-color:rgba(59,130,246,.4)">
+        <input type="number" id="pGiantSwing_WE" min="0" placeholder="WE rate" style="border-color:rgba(232,160,32,.4)">
+
+        <div style="font-size:13px;color:var(--text);font-weight:500">Slingshot</div>
+        <input type="number" id="pSlingshot_WD" min="0" placeholder="WD rate" style="border-color:rgba(59,130,246,.4)">
+        <input type="number" id="pSlingshot_WE" min="0" placeholder="WE rate" style="border-color:rgba(232,160,32,.4)">
+
+        <div style="font-size:13px;color:var(--text);font-weight:500">Skiing</div>
+        <input type="number" id="pSkiing_WD" min="0" placeholder="WD rate" style="border-color:rgba(59,130,246,.4)">
+        <input type="number" id="pSkiing_WE" min="0" placeholder="WE rate" style="border-color:rgba(232,160,32,.4)">
       </div>
 
       <div class="form-group" style="margin-bottom:16px">
@@ -1293,7 +1306,23 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWqdyPxJ-mYOY3BZTPp
 const MONTHLY_CAP = 233333;
 const MJSR_OFFICE  = 'MJSR';
 const ISB_OFFICE   = 'ISB';
-const PRICES = {chairlift:1900, zipline:5000, giant_swing:2500, slingshot:2000, skiing:3000};
+// Weekday = Mon-Thu (0=Sun,1=Mon,...,4=Thu,5=Fri,6=Sat)
+// Weekend = Fri-Sun
+const PRICES_WD = {chairlift:1900, zipline:5000, giant_swing:2500, slingshot:2000, skiing:3000};
+const PRICES_WE = {chairlift:1900, zipline:5000, giant_swing:2500, slingshot:2000, skiing:3000};
+
+function isWeekend(dateStr) {
+  if (!dateStr) return false;
+  const day = new Date(dateStr + 'T12:00:00').getDay(); // 0=Sun,5=Fri,6=Sat
+  return day === 0 || day === 5 || day === 6;
+}
+
+function getPrices(dateStr) {
+  return isWeekend(dateStr) ? PRICES_WE : PRICES_WD;
+}
+
+// Legacy alias so any existing references still work
+const PRICES = PRICES_WD;
 
 const DEP_COLORS = {
   ARMY:'#4ade80','ARMY INT':'#86efac',POLICE:'#60a5fa',ADMIN:'#f472b6',
@@ -1665,7 +1694,22 @@ function renderLedger() {
 
 // ===== SUBMISSION FORM =====
 function checkBudgetOffice() {
-  // Called when PR office dropdown changes — re-run calcCost to refresh budget bar
+  calcCost();
+}
+
+function updatePriceHints() {
+  var dateVal = document.getElementById('fDate').value;
+  var P = getPrices(dateVal);
+  var we = isWeekend(dateVal);
+  var tag = we ? ' (WE)' : ' (WD)';
+  var keys = ['chairlift','zipline','giant_swing','slingshot','skiing'];
+  keys.forEach(function(key) {
+    var el = document.getElementById('priceHint_' + key);
+    if (el) {
+      el.textContent = fmt(P[key]) + ' / ticket' + tag;
+      el.style.color = we ? 'var(--accent)' : 'var(--accent2)';
+    }
+  });
   calcCost();
 }
 
@@ -1683,18 +1727,24 @@ function calcCost() {
   let total = 0, preview = '';
 
   if (type === 'tickets') {
+    const dateVal0  = document.getElementById('fDate').value;
+    const P         = getPrices(dateVal0);
+    const weekend0  = isWeekend(dateVal0);
+    const dayLabel  = weekend0 ? 'Weekend' : 'Weekday';
     const cl = parseInt(document.getElementById('tChairlift').value)  || 0;
     const zl = parseInt(document.getElementById('tZipline').value)    || 0;
     const gs = parseInt(document.getElementById('tGiantSwing').value) || 0;
     const sl = parseInt(document.getElementById('tSlingshot').value)  || 0;
     const sk = parseInt(document.getElementById('tSkiing').value)     || 0;
-    [{label:'Chairlift',qty:cl,price:1900},{label:'Zipline',qty:zl,price:5000},
-     {label:'Giant Swing',qty:gs,price:2500},{label:'Slingshot',qty:sl,price:2000},
-     {label:'Skiing',qty:sk,price:3000}].filter(function(c) { return c.qty > 0; })
+    preview += '<div class="cost-row" style="color:var(--accent);font-size:11px;margin-bottom:4px"><span>Rate type:</span><span>' + dayLabel + ' rates</span></div>';
+    [{label:'Chairlift',qty:cl,key:'chairlift'},{label:'Zipline',qty:zl,key:'zipline'},
+     {label:'Giant Swing',qty:gs,key:'giant_swing'},{label:'Slingshot',qty:sl,key:'slingshot'},
+     {label:'Skiing',qty:sk,key:'skiing'}].filter(function(c) { return c.qty > 0; })
     .forEach(function(c) {
-      const line = c.qty * c.price;
+      const price = P[c.key];
+      const line  = c.qty * price;
       total += line;
-      preview += '<div class="cost-row"><span>' + c.label + ' x ' + c.qty + '</span><span>' + fmt(line) + '</span></div>';
+      preview += '<div class="cost-row"><span>' + c.label + ' x ' + c.qty + ' @ ' + fmt(price) + '</span><span>' + fmt(line) + '</span></div>';
     });
   } else if (type === 'food') {
     total = parseFloat(document.getElementById('tFood').value) || 0;
@@ -1769,7 +1819,8 @@ function submitEntry() {
     gs = parseInt(document.getElementById('tGiantSwing').value) || 0;
     sl = parseInt(document.getElementById('tSlingshot').value)  || 0;
     sk = parseInt(document.getElementById('tSkiing').value)     || 0;
-    total = cl*1900 + zl*5000 + gs*2500 + sl*2000 + sk*3000;
+    var SP = getPrices(date);
+    total = cl*SP.chairlift + zl*SP.zipline + gs*SP.giant_swing + sl*SP.slingshot + sk*SP.skiing;
   } else if (type === 'food') {
     total = parseFloat(document.getElementById('tFood').value) || 0;
   } else {
@@ -2316,41 +2367,78 @@ const ACTIVITY_LABELS = {
 function renderCurrentPrices() {
   const el = document.getElementById('currentPricesDisplay');
   if (!el) return;
-  let html = '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;font-weight:500">Current Active Prices</div>';
-  Object.keys(PRICES).forEach(function(key) {
-    html += '<div class="price-change-row"><span style="color:var(--text)">' + ACTIVITY_LABELS[key] + '</span><span style="color:var(--accent)">' + fmt(PRICES[key]) + ' / ticket</span></div>';
+  let html =
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">' +
+      '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);font-weight:600">Activity</div>' +
+      '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);font-weight:600;text-align:center">Weekday</div>' +
+      '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;text-align:center">Weekend</div>' +
+    '</div>';
+  Object.keys(PRICES_WD).forEach(function(key) {
+    html +=
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="color:var(--text);font-size:13px">' + ACTIVITY_LABELS[key] + '</span>' +
+        '<span style="color:var(--accent2);font-family:monospace;font-size:12px;text-align:center">' + fmt(PRICES_WD[key]) + '</span>' +
+        '<span style="color:var(--accent);font-family:monospace;font-size:12px;text-align:center">' + fmt(PRICES_WE[key]) + '</span>' +
+      '</div>';
   });
   el.innerHTML = html;
-  document.getElementById('pChairlift').value  = PRICES.chairlift;
-  document.getElementById('pZipline').value    = PRICES.zipline;
-  document.getElementById('pGiantSwing').value = PRICES.giant_swing;
-  document.getElementById('pSlingshot').value  = PRICES.slingshot;
-  document.getElementById('pSkiing').value     = PRICES.skiing;
+  // Pre-fill WD inputs
+  document.getElementById('pChairlift_WD').value  = PRICES_WD.chairlift;
+  document.getElementById('pZipline_WD').value    = PRICES_WD.zipline;
+  document.getElementById('pGiantSwing_WD').value = PRICES_WD.giant_swing;
+  document.getElementById('pSlingshot_WD').value  = PRICES_WD.slingshot;
+  document.getElementById('pSkiing_WD').value     = PRICES_WD.skiing;
+  // Pre-fill WE inputs
+  document.getElementById('pChairlift_WE').value  = PRICES_WE.chairlift;
+  document.getElementById('pZipline_WE').value    = PRICES_WE.zipline;
+  document.getElementById('pGiantSwing_WE').value = PRICES_WE.giant_swing;
+  document.getElementById('pSlingshot_WE').value  = PRICES_WE.slingshot;
+  document.getElementById('pSkiing_WE').value     = PRICES_WE.skiing;
 }
 
 function previewPriceChanges() {
-  const newPrices = {
-    chairlift:   parseInt(document.getElementById('pChairlift').value)  || PRICES.chairlift,
-    zipline:     parseInt(document.getElementById('pZipline').value)    || PRICES.zipline,
-    giant_swing: parseInt(document.getElementById('pGiantSwing').value) || PRICES.giant_swing,
-    slingshot:   parseInt(document.getElementById('pSlingshot').value)  || PRICES.slingshot,
-    skiing:      parseInt(document.getElementById('pSkiing').value)     || PRICES.skiing
+  const newWD = {
+    chairlift:   parseInt(document.getElementById('pChairlift_WD').value)  || PRICES_WD.chairlift,
+    zipline:     parseInt(document.getElementById('pZipline_WD').value)    || PRICES_WD.zipline,
+    giant_swing: parseInt(document.getElementById('pGiantSwing_WD').value) || PRICES_WD.giant_swing,
+    slingshot:   parseInt(document.getElementById('pSlingshot_WD').value)  || PRICES_WD.slingshot,
+    skiing:      parseInt(document.getElementById('pSkiing_WD').value)     || PRICES_WD.skiing
+  };
+  const newWE = {
+    chairlift:   parseInt(document.getElementById('pChairlift_WE').value)  || PRICES_WE.chairlift,
+    zipline:     parseInt(document.getElementById('pZipline_WE').value)    || PRICES_WE.zipline,
+    giant_swing: parseInt(document.getElementById('pGiantSwing_WE').value) || PRICES_WE.giant_swing,
+    slingshot:   parseInt(document.getElementById('pSlingshot_WE').value)  || PRICES_WE.slingshot,
+    skiing:      parseInt(document.getElementById('pSkiing_WE').value)     || PRICES_WE.skiing
   };
   const preview = document.getElementById('priceChangePreview');
   let hasChange = false;
-  let html = '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;font-weight:500">Changes to be saved</div>';
-  Object.keys(PRICES).forEach(function(key) {
-    const oldVal = PRICES[key], newVal = newPrices[key];
-    if (oldVal === newVal) return;
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);font-weight:600">Activity</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);font-weight:600;text-align:center">Weekday</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;text-align:center">Weekend</div></div>';
+
+  Object.keys(PRICES_WD).forEach(function(key) {
+    const oldWD = PRICES_WD[key], newWDv = newWD[key];
+    const oldWE = PRICES_WE[key], newWEv = newWE[key];
+    const wdChanged = oldWD !== newWDv;
+    const weChanged = oldWE !== newWEv;
+    if (!wdChanged && !weChanged) return;
     hasChange = true;
-    const diff = newVal - oldVal;
-    const cls  = diff > 0 ? 'price-up' : 'price-down';
-    const arrow = diff > 0 ? '\u2191' : '\u2193';
-    html += '<div class="price-change-row"><span style="color:var(--text)">' + ACTIVITY_LABELS[key] + '</span><span><span style="color:var(--text2)">' + fmt(oldVal) + '</span><span class="price-arrow">\u2192</span><span class="' + cls + '">' + fmt(newVal) + '</span><span class="' + cls + '" style="margin-left:8px">' + arrow + ' ' + fmt(Math.abs(diff)) + '</span></span></div>';
+    function changeCell(oldV, newV, changed, accent) {
+      if (!changed) return '<span style="color:var(--text2);font-family:monospace;font-size:11px;text-align:center">' + fmt(oldV) + ' (no change)</span>';
+      const diff = newV - oldV;
+      const cls  = diff > 0 ? 'price-up' : 'price-down';
+      const arrow = diff > 0 ? '\u2191' : '\u2193';
+      return '<span style="text-align:center;font-size:11px"><span style="color:var(--text2);font-family:monospace">' + fmt(oldV) + '</span> \u2192 <span class="' + cls + '" style="font-family:monospace">' + fmt(newV) + '</span> <span class="' + cls + '">' + arrow + fmt(Math.abs(diff)) + '</span></span>';
+    }
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);align-items:center">' +
+      '<span style="color:var(--text);font-size:13px;font-weight:500">' + ACTIVITY_LABELS[key] + '</span>' +
+      changeCell(oldWD, newWDv, wdChanged, 'accent2') +
+      changeCell(oldWE, newWEv, weChanged, 'accent') +
+      '</div>';
   });
+
   if (hasChange) { preview.innerHTML = html; preview.style.display = 'block'; }
   else { preview.innerHTML = '<div style="color:var(--text2);font-size:12px">No changes from current prices.</div>'; preview.style.display = 'block'; }
-  return { newPrices: newPrices, hasChange: hasChange };
+  return { newWD: newWD, newWE: newWE, hasChange: hasChange };
 }
 
 function submitPriceUpdate() {
@@ -2361,15 +2449,19 @@ function submitPriceUpdate() {
   if (!reason) { showToast('Please enter a reason', 'error'); return; }
   const now = new Date();
   const changes = [];
-  Object.keys(PRICES).forEach(function(key) {
-    const oldVal = PRICES[key], newVal = result.newPrices[key];
-    if (oldVal !== newVal) changes.push({ activity: ACTIVITY_LABELS[key], key: key, old_price: oldVal, new_price: newVal, diff: newVal - oldVal });
+  Object.keys(PRICES_WD).forEach(function(key) {
+    const oldWD = PRICES_WD[key], newWDv = result.newWD[key];
+    const oldWE = PRICES_WE[key], newWEv = result.newWE[key];
+    if (oldWD !== newWDv) changes.push({ activity: ACTIVITY_LABELS[key] + ' (Weekday)', key: key + '_WD', old_price: oldWD, new_price: newWDv, diff: newWDv - oldWD });
+    if (oldWE !== newWEv) changes.push({ activity: ACTIVITY_LABELS[key] + ' (Weekend)', key: key + '_WE', old_price: oldWE, new_price: newWEv, diff: newWEv - oldWE });
   });
   document.getElementById('priceSubmitStatus').textContent = 'Saving...';
   fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ action:'savePriceUpdate', update:{ timestamp: now.toISOString(), date: now.toLocaleDateString('en-GB'), changes: changes, reason: reason, authorised_by: auth } }) })
     .then(function(r) { return r.json(); }).then(function(d) { document.getElementById('priceSubmitStatus').textContent = d.success ? 'Saved to audit log' : 'Sheet error'; })
     .catch(function() { document.getElementById('priceSubmitStatus').textContent = 'Could not reach Sheet'; });
-  Object.keys(result.newPrices).forEach(function(key) { PRICES[key] = result.newPrices[key]; });
+  // Apply new prices in memory
+  Object.keys(result.newWD).forEach(function(key) { PRICES_WD[key] = result.newWD[key]; });
+  Object.keys(result.newWE).forEach(function(key) { PRICES_WE[key] = result.newWE[key]; });
   addToLocalAuditLog(changes, now, reason, auth);
   renderCurrentPrices();
   document.getElementById('priceChangePreview').style.display = 'none';
@@ -2408,7 +2500,8 @@ function loadPriceHistory() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  ['pChairlift','pZipline','pGiantSwing','pSlingshot','pSkiing'].forEach(function(id) {
+  ['pChairlift_WD','pZipline_WD','pGiantSwing_WD','pSlingshot_WD','pSkiing_WD',
+   'pChairlift_WE','pZipline_WE','pGiantSwing_WE','pSlingshot_WE','pSkiing_WE'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('input', previewPriceChanges);
   });
