@@ -1865,6 +1865,7 @@ function resetForm() {
   document.getElementById('costPreview').innerHTML = '<div class="cost-total"><span>TOTAL COST</span><span>PKR 0</span></div>';
   document.getElementById('submitStatus').textContent = '';
   document.getElementById('submitBtn').disabled = false;
+  updatePriceHints(); // refresh rate hints after form reset
 }
 
 // ===== BILLING =====
@@ -2516,6 +2517,7 @@ function init() {
   renderBudgetCards();
   initLedgerFilters();
   initBillMonth();
+  updatePriceHints(); // apply WD/WE rates based on today's date immediately
 }
 
 init();
