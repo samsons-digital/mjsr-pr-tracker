@@ -2366,6 +2366,7 @@ const ACTIVITY_LABELS = {
 };
 
 function renderCurrentPrices() {
+  window._suppressPricePreview = true;
   const el = document.getElementById('currentPricesDisplay');
   if (!el) return;
   let html =
@@ -2395,9 +2396,12 @@ function renderCurrentPrices() {
   document.getElementById('pGiantSwing_WE').value = PRICES_WE.giant_swing;
   document.getElementById('pSlingshot_WE').value  = PRICES_WE.slingshot;
   document.getElementById('pSkiing_WE').value     = PRICES_WE.skiing;
+  // Use timeout so the input events fire first, then re-enable preview
+  setTimeout(function() { window._suppressPricePreview = false; }, 50);
 }
 
 function previewPriceChanges() {
+  if (window._suppressPricePreview) return { newWD: PRICES_WD, newWE: PRICES_WE, hasChange: false };
   const newWD = {
     chairlift:   parseInt(document.getElementById('pChairlift_WD').value)  || PRICES_WD.chairlift,
     zipline:     parseInt(document.getElementById('pZipline_WD').value)    || PRICES_WD.zipline,
@@ -2443,11 +2447,22 @@ function previewPriceChanges() {
 }
 
 function submitPriceUpdate() {
+  var saveBtn = document.querySelector('button[onclick="submitPriceUpdate()"]');
+  if (saveBtn && saveBtn.disabled) return; // prevent double-fire
+  if (saveBtn) saveBtn.disabled = true;
   const result = previewPriceChanges();
-  if (!result.hasChange) { showToast('No prices were changed', 'error'); return; }
+  if (!result.hasChange) {
+    showToast('No prices were changed', 'error');
+    if (saveBtn) saveBtn.disabled = false;
+    return;
+  }
   const reason = document.getElementById('pReason').value.trim();
   const auth   = document.getElementById('pAuthorisedBy').value;
-  if (!reason) { showToast('Please enter a reason', 'error'); return; }
+  if (!reason) {
+    showToast('Please enter a reason', 'error');
+    if (saveBtn) saveBtn.disabled = false;
+    return;
+  }
   const now = new Date();
   const changes = [];
   Object.keys(PRICES_WD).forEach(function(key) {
@@ -2464,9 +2479,14 @@ function submitPriceUpdate() {
   Object.keys(result.newWD).forEach(function(key) { PRICES_WD[key] = result.newWD[key]; });
   Object.keys(result.newWE).forEach(function(key) { PRICES_WE[key] = result.newWE[key]; });
   addToLocalAuditLog(changes, now, reason, auth);
+  // Suppress input listeners while re-filling fields to avoid false preview trigger
+  window._suppressPricePreview = true;
   renderCurrentPrices();
+  window._suppressPricePreview = false;
   document.getElementById('priceChangePreview').style.display = 'none';
+  document.getElementById('priceChangePreview').innerHTML = '';
   document.getElementById('pReason').value = '';
+  if (saveBtn) { setTimeout(function() { saveBtn.disabled = false; }, 1500); }
   showToast('Price update saved', 'success');
 }
 
