@@ -1382,7 +1382,20 @@ function showToast(msg, type) {
 
 // ===== MONTH PILLS =====
 function renderMonthPills() {
-  const months = MONTHS_ORDER.filter(function(m) { return getAllRecords().some(function(r) { return r.month === m; }); });
+  // Always include the current calendar month even if no data yet
+  var now = new Date();
+  var currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  if (MONTHS_ORDER.indexOf(currentMonth) === -1) MONTHS_ORDER.push(currentMonth);
+  if (!MONTH_LABELS[currentMonth]) {
+    var mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    MONTH_LABELS[currentMonth] = mn[now.getMonth()] + ' ' + String(now.getFullYear()).slice(2);
+  }
+
+  // Show months that have data OR the current month
+  const months = MONTHS_ORDER.filter(function(m) {
+    return m === currentMonth || getAllRecords().some(function(r) { return r.month === m; });
+  });
+
   const pills = document.getElementById('monthPills');
   pills.innerHTML = '';
 
@@ -1393,11 +1406,15 @@ function renderMonthPills() {
   pills.appendChild(allPill);
 
   months.forEach(function(m) {
-    const mjsr = mjsrMonthlyTotal(m);
+    const mjsr   = mjsrMonthlyTotal(m);
     const isOver = mjsr > MONTHLY_CAP;
-    const pill = document.createElement('div');
+    const isCurrent = m === currentMonth;
+    const pill   = document.createElement('div');
     pill.className = 'month-pill' + (isOver ? ' over' : '') + (selectedMonth === m ? ' active' : '');
-    pill.textContent = (MONTH_LABELS[m] || m) + (isOver ? ' \u26a0' : '');
+    var label = MONTH_LABELS[m] || m;
+    if (isOver)    label += ' ⚠';
+    if (isCurrent && mjsr === 0) label += ' ●'; // dot indicator for current empty month
+    pill.textContent = label;
     pill.setAttribute('data-month', m);
     pills.appendChild(pill);
   });
