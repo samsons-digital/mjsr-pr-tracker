@@ -2649,8 +2649,17 @@ function loadLiveRecords(callback) {
               dateStr = ds.slice(0, 10);
             }
           }
-          var month = e['Month'] || (dateStr ? dateStr.slice(0, 7) : '');
-          if (!month) return;
+          // Normalise month — Sheet may return Date object or string with time
+          var rawMonth = e['Month'];
+          var month = '';
+          if (rawMonth instanceof Date) {
+            month = rawMonth.getFullYear() + '-' + String(rawMonth.getMonth()+1).padStart(2,'0');
+          } else if (rawMonth && typeof rawMonth === 'string') {
+            month = rawMonth.trim().slice(0, 7);
+          } else if (dateStr) {
+            month = dateStr.slice(0, 7);
+          }
+          if (!month || month.length < 7) return;
           newEntries.push({
             id:          entryId || Date.now(),
             date:        dateStr,
@@ -2711,11 +2720,18 @@ function init() {
   loadLiveRecords(function() {
     if (liveRecords.length > 0) {
       renderMonthPills();
+      // Re-apply current month selection so charts/cards pick up live data
       renderStatCards();
       updateCharts();
       renderBudgetCards();
       initLedgerFilters();
       initBillMonth();
+      // If user already selected a specific month, re-apply it with fresh data
+      if (selectedMonth !== 'all') {
+        renderStatCards();
+        updateCharts();
+        renderBudgetCards();
+      }
     }
     // Load prices after records are ready
     loadActivePricesFromSheet(function() {
