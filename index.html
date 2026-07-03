@@ -993,6 +993,7 @@
       <button class="btn-secondary" onclick="resetForm()">Clear Form</button>
       <span id="submitStatus" style="font-size:12px;color:var(--text2)"></span>
     </div>
+    <div id="budgetWarningBanner" style="display:none;margin-top:14px;padding:12px 16px;border-radius:8px;font-size:13px;font-weight:600;border-left:4px solid;"></div>
   </div>
 </div>
 
@@ -1712,6 +1713,7 @@ function renderLedger() {
 // ===== SUBMISSION FORM =====
 function checkBudgetOffice() {
   calcCost();
+  updateBudgetWarning();
 }
 
 function updatePriceHints() {
@@ -1823,10 +1825,15 @@ function submitEntry() {
 
   const month = date.slice(0, 7);
 
-  // Only block MJSR office if capped
+  // Only block MJSR office if capped — check local records first for instant feedback
   if (prRef === MJSR_OFFICE) {
-    const currentSpend = getAllRecords().filter(function(r) { return r.month === month && r.pr_ref === MJSR_OFFICE; }).reduce(function(s,r) { return s + r.total; }, 0);
-    if (currentSpend >= MONTHLY_CAP) { showToast('BLOCKED: MJSR monthly budget cap reached', 'error'); return; }
+    const currentSpend = getAllRecords()
+      .filter(function(r) { return r.month === month && r.pr_ref === MJSR_OFFICE; })
+      .reduce(function(s,r) { return s + r.total; }, 0);
+    if (currentSpend >= MONTHLY_CAP) {
+      showCapBlockAlert(month);
+      return;
+    }
   }
 
   let total = 0, cl = 0, zl = 0, gs = 0, sl = 0, sk = 0;
@@ -1837,38 +1844,100 @@ function submitEntry() {
     sl = parseInt(document.getElementById('tSlingshot').value)  || 0;
     sk = parseInt(document.getElementById('tSkiing').value)     || 0;
     var SP = getPrices(date);
+    // Safety check: if prices are zero (not yet loaded), abort and prompt retry
+    if (SP.chairlift === 0 && SP.zipline === 0 && SP.skiing === 0) {
+      showToast('Prices not yet loaded — please wait a moment and try again', 'error');
+      loadActivePricesFromSheet(function() { updatePriceHints(); });
+      return;
+    }
     total = cl*SP.chairlift + zl*SP.zipline + gs*SP.giant_swing + sl*SP.slingshot + sk*SP.skiing;
   } else if (type === 'food') {
     total = parseFloat(document.getElementById('tFood').value) || 0;
   } else {
-    total = (parseFloat(document.getElementById('tRoom').value) || 0) + (parseFloat(document.getElementById('tAccomFood').value) || 0);
+    total = (parseFloat(document.getElementById('tRoom').value) || 0) +
+            (parseFloat(document.getElementById('tAccomFood').value) || 0);
   }
 
   if (total <= 0) { showToast('Please enter at least one item', 'error'); return; }
+
+  // Disable submit button to prevent double-submission
+  var submitBtn = document.querySelector('button[onclick="submitEntry()"]');
+  if (submitBtn) submitBtn.disabled = true;
 
   const entry = {
     id: Date.now(), date: date, month: month,
     gov_dep: govDep, pr_ref: prRef, requester: requester,
     chairlift: cl, zipline: zl, giant_swing: gs, slingshot: sl, skiing: sk,
-    total: total, type: type, comments: comments
+    total: total, type: type,
+    rate_type: isWeekend(date) ? 'WE' : 'WD',
+    comments: comments
   };
 
-  sessionSubmissions.push(entry);
-
-  if (SCRIPT_URL) {
-    document.getElementById('submitStatus').textContent = 'Saving...';
-    fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'text/plain'},
-      body: JSON.stringify({action: 'addEntry', entry: entry})
-    }).then(function(r) { return r.json(); }).then(function(d) {
-      document.getElementById('submitStatus').textContent = d.success ? 'Saved to Sheets' : 'Local only';
-    }).catch(function() { document.getElementById('submitStatus').textContent = 'Local only'; });
+  if (!SCRIPT_URL) {
+    // Offline mode — save locally only
+    sessionSubmissions.push(entry);
+    showToast('Saved locally (no Sheet connection)', 'error');
+    renderMonthPills(); renderStatCards(); updateCharts(); renderBudgetCards();
+    resetForm();
+    if (submitBtn) submitBtn.disabled = false;
+    return;
   }
 
-  showToast('Entry submitted: ' + fmt(total) + (prRef === ISB_OFFICE ? ' (IOU)' : ''), 'success');
-  renderMonthPills(); renderStatCards(); updateCharts(); renderBudgetCards();
-  resetForm();
+  document.getElementById('submitStatus').textContent = 'Saving to Sheet...';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({action: 'addEntry', entry: entry})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (submitBtn) submitBtn.disabled = false;
+
+    if (d.blocked) {
+      // Budget cap reached — server confirmed
+      document.getElementById('submitStatus').textContent = 'Blocked — cap reached';
+      showCapBlockAlert(month);
+      return;
+    }
+
+    if (!d.success) {
+      // Sheet error
+      document.getElementById('submitStatus').textContent = 'Sheet error — NOT saved';
+      showToast('ERROR: Entry was NOT saved to Sheet. ' + (d.error || 'Unknown error'), 'error');
+      return;
+    }
+
+    // Success — only now add to local records and show green toast
+    sessionSubmissions.push(entry);
+    document.getElementById('submitStatus').textContent = 'Saved to Sheet ✓';
+    showToast('Entry saved: ' + fmt(total) + (prRef === ISB_OFFICE ? ' (IOU)' : ''), 'success');
+    renderMonthPills(); renderStatCards(); updateCharts(); renderBudgetCards();
+    updateBudgetWarning();
+    // If server reports budget now blocked after this submission, warn immediately
+    if (d.budgetAfter && d.budgetAfter.isBlocked) {
+      showToast('MJSR budget cap now reached for ' + (MONTH_LABELS[month] || month) + ' — further submissions blocked', 'error');
+    }
+    resetForm();
+  })
+  .catch(function(err) {
+    if (submitBtn) submitBtn.disabled = false;
+    document.getElementById('submitStatus').textContent = 'Network error — NOT saved';
+    showToast('Network error: Entry was NOT saved to Sheet. Check connection and try again.', 'error');
+  });
+}
+
+function showCapBlockAlert(month) {
+  var ml = (month && MONTH_LABELS[month]) ? MONTH_LABELS[month] : month;
+  // Try to show a prominent modal if available, otherwise alert
+  var msg = 'SUBMISSION BLOCKED\n\nThe MJSR PR Office monthly budget cap of PKR ' +
+    MONTHLY_CAP.toLocaleString() + ' has been reached for ' + ml + '.\n\n' +
+    'New MJSR submissions are blocked until next month.\n' +
+    'ISB Office submissions are not affected.';
+  // Use a styled toast-like alert
+  showToast('BLOCKED: MJSR cap reached for ' + ml + ' — submission rejected', 'error');
+  // Also show a browser alert so it cannot be missed
+  setTimeout(function() { alert(msg); }, 100);
 }
 
 function resetForm() {
@@ -2398,9 +2467,13 @@ function loadActivePricesFromSheet(callback) {
   }).then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.success && d.WD && d.WE) {
-        Object.keys(d.WD).forEach(function(k) { PRICES_WD[k] = d.WD[k]; });
-        Object.keys(d.WE).forEach(function(k) { PRICES_WE[k] = d.WE[k]; });
-        pricesLoaded = true;
+        // Only apply if at least one price is non-zero (guard against corrupt/empty Sheet data)
+        var anyNonZero = Object.keys(d.WD).some(function(k) { return d.WD[k] > 0; });
+        if (anyNonZero) {
+          Object.keys(d.WD).forEach(function(k) { PRICES_WD[k] = d.WD[k]; });
+          Object.keys(d.WE).forEach(function(k) { PRICES_WE[k] = d.WE[k]; });
+          pricesLoaded = true;
+        }
       }
       if (callback) callback();
     })
@@ -2708,6 +2781,42 @@ function updatePriceHints() {
     }
   });
   calcCost();
+  updateBudgetWarning();
+}
+
+function updateBudgetWarning() {
+  var banner = document.getElementById('budgetWarningBanner');
+  if (!banner) return;
+  var dateVal = document.getElementById('fDate').value;
+  if (!dateVal) { banner.style.display = 'none'; return; }
+  var month   = dateVal.slice(0, 7);
+  var prRef   = document.getElementById('fPrRef') ? document.getElementById('fPrRef').value : '';
+  if (prRef !== MJSR_OFFICE) { banner.style.display = 'none'; return; }
+
+  var mjsrSpend = getAllRecords()
+    .filter(function(r) { return r.month === month && r.pr_ref === MJSR_OFFICE; })
+    .reduce(function(s,r) { return s + r.total; }, 0);
+  var remaining = MONTHLY_CAP - mjsrSpend;
+  var pct = (mjsrSpend / MONTHLY_CAP) * 100;
+
+  if (mjsrSpend >= MONTHLY_CAP) {
+    banner.style.display = 'block';
+    banner.style.background = '#fef2f2';
+    banner.style.borderColor = '#ef4444';
+    banner.style.color = '#991b1b';
+    banner.innerHTML = '&#9888; MJSR BUDGET CAP REACHED for ' + (MONTH_LABELS[month] || month) +
+      '. PKR ' + Math.round(mjsrSpend).toLocaleString() + ' / ' + MONTHLY_CAP.toLocaleString() +
+      ' spent. <strong>Submissions are BLOCKED.</strong>';
+  } else if (pct >= 85) {
+    banner.style.display = 'block';
+    banner.style.background = '#fffbeb';
+    banner.style.borderColor = '#f59e0b';
+    banner.style.color = '#92400e';
+    banner.innerHTML = '&#9888; MJSR budget near cap: PKR ' + Math.round(remaining).toLocaleString() +
+      ' remaining (' + Math.round(pct) + '% used) for ' + (MONTH_LABELS[month] || month) + '.';
+  } else {
+    banner.style.display = 'none';
+  }
 }
 
 function init() {
@@ -2737,6 +2846,8 @@ function init() {
         updateCharts();
         renderBudgetCards();
       }
+      // Refresh budget warning on submit form with updated data
+      updateBudgetWarning();
     }
     // Load prices after records are ready
     loadActivePricesFromSheet(function() {
