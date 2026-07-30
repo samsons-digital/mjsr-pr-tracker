@@ -2515,8 +2515,14 @@ function loadActivePricesFromSheet(callback) {
         // Only apply if at least one price is non-zero (guard against corrupt/empty Sheet data)
         var anyNonZero = Object.keys(d.WD).some(function(k) { return d.WD[k] > 0; });
         if (anyNonZero) {
-          Object.keys(d.WD).forEach(function(k) { PRICES_WD[k] = d.WD[k]; });
-          Object.keys(d.WE).forEach(function(k) { PRICES_WE[k] = d.WE[k]; });
+          // Only apply keys we recognise — prevents stale/corrupt Sheet keys polluting PRICES
+          var knownKeys = Object.keys(PRICES_WD);
+          Object.keys(d.WD).forEach(function(k) {
+            if (knownKeys.indexOf(k) !== -1) PRICES_WD[k] = d.WD[k];
+          });
+          Object.keys(d.WE).forEach(function(k) {
+            if (knownKeys.indexOf(k) !== -1) PRICES_WE[k] = d.WE[k];
+          });
           pricesLoaded = true;
         }
       }
@@ -2552,6 +2558,7 @@ function renderCurrentPrices() {
       '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;text-align:center">Weekend</div>' +
     '</div>';
   Object.keys(PRICES_WD).forEach(function(key) {
+    if (!ACTIVITY_LABELS[key]) return; // skip unknown keys from Sheet
     html +=
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px 0;border-bottom:1px solid var(--border)">' +
         '<span style="color:var(--text);font-size:13px">' + ACTIVITY_LABELS[key] + '</span>' +
